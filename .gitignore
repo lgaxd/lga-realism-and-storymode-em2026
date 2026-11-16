@@ -3,4 +3,4 @@ obj/
 vendor/
 tools-src/
 build.log
-codemap/
+/codemap/
