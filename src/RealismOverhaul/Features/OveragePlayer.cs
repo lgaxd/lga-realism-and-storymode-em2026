@@ -110,14 +110,14 @@ public static class OveragePlayer
     // While either runs for an eligible Overage Player, report that player's age as 23, so the
     // game's own capacity/tournament/move logic runs unchanged. The get_Age patch exists only
     // inside that window, because the getter is hot.
-    static string? _clampedPlayerId;
+    static readonly HashSet<string> _clampedIds = new();
     static int _clampDepth;
     static readonly System.Reflection.MethodInfo AgeGetter = AccessTools.PropertyGetter(typeof(DataUser), nameof(DataUser.Age));
     static readonly HarmonyMethod ClampAge = new(AccessTools.Method(typeof(OveragePlayer), nameof(ClampAgePostfix)));
 
     static void ClampAgePostfix(DataUser __instance, ref int __result)
     {
-        if (_clampedPlayerId != null && __result > AcademyAgeLimit && __instance.Id == _clampedPlayerId)
+        if (__result > AcademyAgeLimit && _clampedIds.Count > 0 && _clampedIds.Contains(__instance.Id))
             __result = AcademyAgeLimit;
     }
 
@@ -128,19 +128,24 @@ public static class OveragePlayer
         if (player == null || !IsOverage(player)) return false;
         var club = GlobalValues.DataTeam;
         if (club == null || player.TeamId != club.Id || !HasFreeOverageSlot(club.GetAcademyTeam(), player)) return false;
+        return BeginClamp(new[] { player.Id });
+    }
 
+    /// Starts an age-clamp window: while it is open, the given players' ages read as 23.
+    static bool BeginClamp(IEnumerable<string> playerIds)
+    {
+        var any = false;
+        foreach (var id in playerIds) any |= _clampedIds.Add(id);
+        if (!any && _clampDepth == 0) return false;
         if (_clampDepth++ == 0)
-        {
-            _clampedPlayerId = player.Id;
             _harmony.Patch(AgeGetter, postfix: ClampAge);
-        }
         return true;
     }
 
     static void EndClamp(bool began)
     {
         if (!began || --_clampDepth > 0) return;
-        _clampedPlayerId = null;
+        _clampedIds.Clear();
         _harmony.Unpatch(AgeGetter, HarmonyPatchType.Postfix, _harmony.Id);
     }
 
@@ -164,6 +169,61 @@ public static class OveragePlayer
         var player = __instance._player;
         if (__state && player != null && player.TeamId != GlobalValues.DataTeam?.Id)
             Plugin.Log.LogInfo($"[Overage] moved {player.Id} (age {player.Age}) down to the Academy as its Overage Player");
+    }
+
+    // 4. AI Academies. AIAcademyOveragePass promotes or lists for sale every AI Academy player older
+    // than 23 (age limit compiled in). Sometimes keep one instead: always the Academy's IGL if they
+    // aged out, otherwise each aged-out player with a fixed per-player chance. At most one per Academy.
+    [HarmonyPatch(typeof(AiRosterLifecyclePasses), nameof(AiRosterLifecyclePasses.AIAcademyOveragePass))]
+    [HarmonyPrefix]
+    static void AIAcademyOveragePassPrefix(out bool __state)
+    {
+        __state = false;
+        if (!Plugin.Flags.AiOverageRetention.Value) return;
+        var keep = new List<string>();
+        // IReadOnlyList's Count lives on the IReadOnlyCollection interface in the interop.
+        var teams = DataTeams.List;
+        var count = teams.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<DataTeam>>().Count;
+        for (var i = 0; i < count; i++)
+        {
+            var academy = teams[i];
+            if (academy == null || !academy.IsAcademy || DataTeam.IsOwnedByUser(academy)) continue;
+            var kept = PickRetainedOverage(academy);
+            if (kept != null) keep.Add(kept.Id);
+        }
+        if (keep.Count == 0) return;
+        Plugin.Log.LogInfo($"[Overage] AI Academies keeping {keep.Count} Overage Player(s): {string.Join(", ", keep)}");
+        __state = BeginClamp(keep);
+    }
+
+    [HarmonyPatch(typeof(AiRosterLifecyclePasses), nameof(AiRosterLifecyclePasses.AIAcademyOveragePass))]
+    [HarmonyPostfix]
+    static void AIAcademyOveragePassPostfix(bool __state) => EndClamp(__state);
+
+    static DataPlayer? PickRetainedOverage(DataTeam academy)
+    {
+        var squad = academy.FullSquad;
+        if (squad == null) return null;
+        DataPlayer? chosen = null;
+        for (var i = 0; i < squad.Count; i++)
+        {
+            var p = DataPlayers.Get(squad[i]);
+            if (p == null || !IsOverage(p)) continue;
+            if (p.IsIGL) return p;
+            if (chosen == null && StableRoll(p.Id) < Plugin.Flags.AiOverageRetentionChance.Value) chosen = p;
+        }
+        return chosen;
+    }
+
+    /// Deterministic 0-99 roll per player, so the AI's decision is stable across weekly passes.
+    static int StableRoll(string id)
+    {
+        unchecked
+        {
+            var h = 2166136261u;
+            foreach (var c in id) h = (h ^ c) * 16777619u;
+            return (int)(h % 100);
+        }
     }
 
     // 3. Moving one of our own players down to the Academy.

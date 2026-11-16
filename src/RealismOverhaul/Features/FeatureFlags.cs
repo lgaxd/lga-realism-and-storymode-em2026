@@ -7,4 +7,11 @@ public class FeatureFlags(ConfigFile config)
 {
     public ConfigEntry<bool> OveragePlayer { get; } = config.Bind("Features", "OveragePlayer", true,
         "Allow one Academy player older than the Academy age limit (the Overage Player).");
+
+    public ConfigEntry<bool> AiOverageRetention { get; } = config.Bind("Features", "AiOverageRetention", true,
+        "AI Academies sometimes keep one player who aged out (always their IGL) instead of selling them.");
+
+    public ConfigEntry<int> AiOverageRetentionChance { get; } = config.Bind("Tuning", "AiOverageRetentionChance", 15,
+        new ConfigDescription("Percent chance an AI Academy keeps a non-IGL player who aged out.",
+            new AcceptableValueRange<int>(0, 100)));
 }
