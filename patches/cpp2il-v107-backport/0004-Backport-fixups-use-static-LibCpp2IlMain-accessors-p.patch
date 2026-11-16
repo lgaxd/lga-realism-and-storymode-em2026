@@ -1,0 +1,281 @@
+From 873ad25f70ef94054247e54f5294db0820bd4cd3 Mon Sep 17 00:00:00 2001
+From: local <local@local>
+Date: Mon, 16 Nov 2026 00:32:28 -0300
+Subject: [PATCH 4/5] Backport fixups: use static LibCpp2IlMain accessors; pin
+ SDK 10
+
+---
+ LibCpp2IL/BinarySearcher.cs                   | 14 +++---
+ .../BinaryStructures/Il2CppMethodSpec.cs      |  6 +--
+ .../BinaryStructures/Il2CppRGCTXDefinition.cs |  2 +-
+ .../Metadata/Il2CppGenericMethodSpecOnType.cs |  4 +-
+ LibCpp2IL/Metadata/Il2CppMetadata.cs          | 43 -------------------
+ .../Metadata/Il2CppMethodSpecOnGenericType.cs |  4 +-
+ LibCpp2IL/Metadata/Il2CppTypeDefinition.cs    |  2 +-
+ LibCpp2IL/MetadataUsage.cs                    | 14 +++---
+ global.json                                   |  7 ++-
+ 9 files changed, 26 insertions(+), 70 deletions(-)
+
+diff --git a/LibCpp2IL/BinarySearcher.cs b/LibCpp2IL/BinarySearcher.cs
+index d73780e..3d219a4 100644
+--- a/LibCpp2IL/BinarySearcher.cs
++++ b/LibCpp2IL/BinarySearcher.cs
+@@ -149,7 +149,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+         var ptrSize = (binary.is32Bit ? 4u : 8u);
+ 
+         List<ulong>? pCodegenModules = null;
+-        if (metadata.MetadataVersion < 27f)
++        if (LibCpp2IlMain.MetadataVersion < 27f)
+         {
+             //Pre-v27, mscorlib is the first codegen module, so *MscorlibCodegenEntryInCodegenModulesList == g_CodegenModules, so we can just find a pointer to this.
+             if (pMscorlibCodegenEntryInCodegenModulesList.Count == 1)
+@@ -210,7 +210,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+ 
+         //We have pCodegenModules which *should* be x-reffed in the last pointer of Il2CppCodeRegistration.
+         //So, subtract the size of one pointer from that...
+-        var bytesToGoBack = (ulong)Il2CppCodeRegistration.GetStructSize(binary.is32Bit, metadata.MetadataVersion) - ptrSize;
++        var bytesToGoBack = (ulong)Il2CppCodeRegistration.GetStructSize(binary.is32Bit, LibCpp2IlMain.MetadataVersion) - ptrSize;
+ 
+         LibLogger.VerboseNewline($"\t\t\tpCodegenModules is the second-to-last field of the codereg struct. Therefore on this version and architecture, we need to subtract {bytesToGoBack} bytes from its address to get pCodeReg");
+ 
+@@ -282,7 +282,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+     public ulong FindMetadataRegistrationPre24_5()
+     {
+         //We're looking for TypeDefinitionsSizesCount, which is the 4th-to-last field
+-        var sizeOfMr = (ulong)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, metadata.MetadataVersion);
++        var sizeOfMr = (ulong)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, LibCpp2IlMain.MetadataVersion);
+         var ptrSize = binary.is32Bit ? 4ul : 8ul;
+ 
+         var bytesToSubtract = sizeOfMr - ptrSize * 4;
+@@ -312,13 +312,13 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+     public ulong FindMetadataRegistrationPost24_5(Il2CppMetadata metadata)
+     {
+         var ptrSize = binary.is32Bit ? 4ul : 8ul;
+-        var sizeOfMr = (uint)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, metadata.MetadataVersion);
++        var sizeOfMr = (uint)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, LibCpp2IlMain.MetadataVersion);
+ 
+         LibLogger.VerboseNewline($"\t\t\tLooking for the number of type definitions, 0x{typeDefinitionsCount:X}");
+         var ptrsToNumberOfTypes = FindAllMappedWords((ulong)typeDefinitionsCount).ToList();
+ 
+         //typeDefinitionsSizesCount sits 4 fields from the end of the struct, or 6 on >= 106.1 which added the two alwaysInitMetadataUsages fields after it
+-        var typeDefSizesCountFieldsFromEnd = metadata.MetadataVersion >= 106.1f ? 6ul : 4ul;
++        var typeDefSizesCountFieldsFromEnd = LibCpp2IlMain.MetadataVersion >= 106.1f ? 6ul : 4ul;
+ 
+         LibLogger.VerboseNewline($"\t\t\tFound {ptrsToNumberOfTypes.Count} instances of the number of type definitions: [{string.Join(", ", ptrsToNumberOfTypes.Select(p => p.ToString("X")))}]");
+         var possibleMetadataUsages = ptrsToNumberOfTypes.Select(a => a - sizeOfMr + ptrSize * typeDefSizesCountFieldsFromEnd).ToList();
+@@ -350,7 +350,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+                         if (mrWords[i] == 0)
+                         {
+                             //Maybe need an investigation here, but metadataUsages can be (always is?) a null ptr on v27. It's at index 11 on v108+ (which dropped two count/pointer pairs), 14 otherwise.
+-                            ok = i >= (metadata.MetadataVersion >= 108 ? 11 : 14);
++                            ok = i >= (LibCpp2IlMain.MetadataVersion >= 108 ? 11 : 14);
+                             ok |= i == 1; //genericClasses can rarely be null on v39?
+                             if (!ok)
+                                 LibLogger.VerboseNewline($"\t\t\tRejecting metadata registration 0x{va:X} because the pointer at index {i} is 0.");
+@@ -370,7 +370,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+                 if (ok)
+                 {
+                     var metaReg = binary.ReadReadableAtVirtualAddress<Il2CppMetadataRegistration>(va);
+-                    if (metadata.MetadataVersion >= 27f && (metaReg.metadataUsagesCount != 0 || metaReg.metadataUsages != 0))
++                    if (LibCpp2IlMain.MetadataVersion >= 27f && (metaReg.metadataUsagesCount != 0 || metaReg.metadataUsages != 0))
+                     {
+                         //Too many metadata usages - should be 0 on v27
+                         LibLogger.VerboseNewline($"\t\t\tWarning: metadata registration 0x{va:X} has {metaReg.metadataUsagesCount} metadata usages at a pointer of 0x{metaReg.metadataUsages:X}. We're on v27, these should be 0.");
+diff --git a/LibCpp2IL/BinaryStructures/Il2CppMethodSpec.cs b/LibCpp2IL/BinaryStructures/Il2CppMethodSpec.cs
+index 1276540..76266f2 100644
+--- a/LibCpp2IL/BinaryStructures/Il2CppMethodSpec.cs
++++ b/LibCpp2IL/BinaryStructures/Il2CppMethodSpec.cs
+@@ -13,14 +13,14 @@ public class Il2CppMethodSpec : ReadableClass
+     public Il2CppVariableWidthIndex<Il2CppGenericInst> methodIndexIndex;
+ 
+     public Il2CppMethodDefinition? MethodDefinition
+-        => OwningContext.Metadata.GetMethodDefinitionFromIndex(methodDefinitionIndex);
++        => LibCpp2IlMain.TheMetadata!.GetMethodDefinitionFromIndex(methodDefinitionIndex);
+ 
+     public Il2CppGenericInst? GenericClassInst
+     {
+         get
+         {
+             if (classIndexIndex.IsNull) return null;
+-            return OwningContext.Binary.GetGenericInst(classIndexIndex);
++            return LibCpp2IlMain.Binary!.GetGenericInst(classIndexIndex);
+         }
+     }
+ 
+@@ -29,7 +29,7 @@ public class Il2CppMethodSpec : ReadableClass
+         get
+         {
+             if (methodIndexIndex.IsNull) return null;
+-            return OwningContext.Binary.GetGenericInst(methodIndexIndex);
++            return LibCpp2IlMain.Binary!.GetGenericInst(methodIndexIndex);
+         }
+     }
+ 
+diff --git a/LibCpp2IL/BinaryStructures/Il2CppRGCTXDefinition.cs b/LibCpp2IL/BinaryStructures/Il2CppRGCTXDefinition.cs
+index e3b85ca..62607ad 100644
+--- a/LibCpp2IL/BinaryStructures/Il2CppRGCTXDefinition.cs
++++ b/LibCpp2IL/BinaryStructures/Il2CppRGCTXDefinition.cs
+@@ -12,7 +12,7 @@ public class Il2CppRGCTXDefinition : ReadableClass
+ 
+     public int TypeIndex => _defData?.TypeIndex ?? _constrainedData!.TypeIndex;
+ 
+-    public Il2CppMethodSpec MethodSpec => OwningContext.Metadata.GetMethodSpec(MethodIndex);
++    public Il2CppMethodSpec MethodSpec => LibCpp2IlMain.TheMetadata!.GetMethodSpec(MethodIndex);
+ 
+     public Il2CppTypeReflectionData? Type => LibCpp2ILUtils.GetTypeReflectionData(LibCpp2IlMain.Binary!.GetType(Il2CppVariableWidthIndex<Il2CppType>.MakeTemporaryForFixedWidthUsage(TypeIndex)));
+ 
+diff --git a/LibCpp2IL/Metadata/Il2CppGenericMethodSpecOnType.cs b/LibCpp2IL/Metadata/Il2CppGenericMethodSpecOnType.cs
+index e768507..c1df807 100644
+--- a/LibCpp2IL/Metadata/Il2CppGenericMethodSpecOnType.cs
++++ b/LibCpp2IL/Metadata/Il2CppGenericMethodSpecOnType.cs
+@@ -7,8 +7,8 @@ namespace LibCpp2IL.Metadata
+         public Il2CppVariableWidthIndex<Il2CppMethodDefinition> methodDefinitionIndex;
+         public Il2CppVariableWidthIndex<Il2CppGenericInst> methodIndexIndex;
+ 
+-        public Il2CppMethodDefinition MethodDefinition => OwningContext.Metadata.GetMethodDefinitionFromIndex(methodDefinitionIndex);
+-        public Il2CppGenericInst GenericMethodInst => OwningContext.Binary.GetGenericInst(methodIndexIndex);
++        public Il2CppMethodDefinition MethodDefinition => LibCpp2IlMain.TheMetadata!.GetMethodDefinitionFromIndex(methodDefinitionIndex);
++        public Il2CppGenericInst GenericMethodInst => LibCpp2IlMain.Binary!.GetGenericInst(methodIndexIndex);
+ 
+         public override void Read(ClassReadingBinaryReader reader)
+         {
+diff --git a/LibCpp2IL/Metadata/Il2CppMetadata.cs b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+index 462a955..8eb37c2 100644
+--- a/LibCpp2IL/Metadata/Il2CppMetadata.cs
++++ b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+@@ -590,49 +590,6 @@ public class Il2CppMetadata : ClassReadingBinaryReader
+     }
+ #pragma warning restore 8618
+ 
+-    internal void SetOwningContext(LibCpp2IlContext context)
+-    {
+-        OwningContext = context;
+-
+-        SetOwningContext(imageDefinitions, context);
+-        SetOwningContext(AssemblyDefinitions, context);
+-        SetOwningContext(typeDefs, context);
+-        SetOwningContext(interfaceOffsets, context);
+-        SetOwningContext(methodDefs, context);
+-        SetOwningContext(parameterDefs, context);
+-        SetOwningContext(fieldDefs, context);
+-        SetOwningContext(fieldDefaultValues, context);
+-        SetOwningContext(parameterDefaultValues, context);
+-        SetOwningContext(propertyDefs, context);
+-        SetOwningContext(eventDefs, context);
+-        SetOwningContext(genericContainers, context);
+-        SetOwningContext(genericParameters, context);
+-        SetOwningContext(stringLiterals, context);
+-        SetOwningContext(fieldRefs, context);
+-
+-        if (RgctxDefinitions != null)
+-            SetOwningContext(RgctxDefinitions, context);
+-
+-        //v108+, on older versions these are populated (with context already set) by Il2CppBinary.Init
+-        if (MetadataVersion >= 108)
+-        {
+-            SetOwningContext(methodSpecs, context);
+-            SetOwningContext(genericMethodTables, context);
+-            SetOwningContext(RgctxRanges!, context);
+-            SetOwningContext(RgctxValues!, context);
+-        }
+-
+-        // Set on sub-objects not directly in arrays
+-        foreach (var asm in AssemblyDefinitions)
+-            asm.AssemblyName.OwningContext = context;
+-    }
+-
+-    private static void SetOwningContext<T>(T[] items, LibCpp2IlContext context) where T : ReadableClass
+-    {
+-        foreach (var item in items)
+-            item.OwningContext = context;
+-    }
+-
+     private T[] ReadMetadataClassArray<T>(Il2CppGlobalMetadataSectionHeader section) where T : ReadableClass, new()
+     {
+         //First things first, we're going to be moving the position around a lot, so we need to lock. 
+diff --git a/LibCpp2IL/Metadata/Il2CppMethodSpecOnGenericType.cs b/LibCpp2IL/Metadata/Il2CppMethodSpecOnGenericType.cs
+index 58ee53f..8db6b57 100644
+--- a/LibCpp2IL/Metadata/Il2CppMethodSpecOnGenericType.cs
++++ b/LibCpp2IL/Metadata/Il2CppMethodSpecOnGenericType.cs
+@@ -7,8 +7,8 @@ namespace LibCpp2IL.Metadata
+         public Il2CppVariableWidthIndex<Il2CppMethodDefinition> methodDefinitionIndex;
+         public Il2CppVariableWidthIndex<Il2CppGenericInst> classIndexIndex;
+ 
+-        public Il2CppGenericInst GenericClassInst => OwningContext.Binary.GetGenericInst(classIndexIndex);
+-        public Il2CppMethodDefinition MethodDefinition => OwningContext.Metadata.GetMethodDefinitionFromIndex(methodDefinitionIndex);
++        public Il2CppGenericInst GenericClassInst => LibCpp2IlMain.Binary!.GetGenericInst(classIndexIndex);
++        public Il2CppMethodDefinition MethodDefinition => LibCpp2IlMain.TheMetadata!.GetMethodDefinitionFromIndex(methodDefinitionIndex);
+         
+         public override void Read(ClassReadingBinaryReader reader)
+         {
+diff --git a/LibCpp2IL/Metadata/Il2CppTypeDefinition.cs b/LibCpp2IL/Metadata/Il2CppTypeDefinition.cs
+index 61fccdb..cf83146 100644
+--- a/LibCpp2IL/Metadata/Il2CppTypeDefinition.cs
++++ b/LibCpp2IL/Metadata/Il2CppTypeDefinition.cs
+@@ -150,7 +150,7 @@ public class Il2CppTypeDefinition : ReadableClass
+             if (MetadataVersion >= 108)
+             {
+                 //Back in the metadata, ranges are per-image and their starts are global into the values table
+-                var metadata = OwningContext.Metadata;
++                var metadata = LibCpp2IlMain.TheMetadata!;
+                 var image = DeclaringAssembly!;
+                 var range = metadata.RgctxRanges!.Skip(image.rgctxRangesStart).Take((int)image.rgctxRangesCount).FirstOrDefault(r => r.token == Token);
+ 
+diff --git a/LibCpp2IL/MetadataUsage.cs b/LibCpp2IL/MetadataUsage.cs
+index fd6174b..ec0f868 100644
+--- a/LibCpp2IL/MetadataUsage.cs
++++ b/LibCpp2IL/MetadataUsage.cs
+@@ -39,11 +39,11 @@ public class MetadataUsage(MetadataUsageType type, ulong offset, uint value)
+     public bool IsValid =>
+         Type switch
+         {
+-            MetadataUsageType.Type or MetadataUsageType.TypeInfo => value < context.Binary.NumTypes,
+-            MetadataUsageType.MethodDef => value < context.Metadata.MethodDefinitionCount,
+-            MetadataUsageType.FieldInfo => value < context.Metadata.fieldRefs.Length,
+-            MetadataUsageType.StringLiteral => value < context.Metadata.stringLiterals.Length,
+-            MetadataUsageType.MethodRef => value < context.Metadata.AllGenericMethodSpecs.Length,
++            MetadataUsageType.Type or MetadataUsageType.TypeInfo => value < LibCpp2IlMain.Binary!.NumTypes,
++            MetadataUsageType.MethodDef => value < LibCpp2IlMain.TheMetadata!.MethodDefinitionCount,
++            MetadataUsageType.FieldInfo => value < LibCpp2IlMain.TheMetadata!.fieldRefs.Length,
++            MetadataUsageType.StringLiteral => value < LibCpp2IlMain.TheMetadata!.stringLiterals.Length,
++            MetadataUsageType.MethodRef => value < LibCpp2IlMain.TheMetadata!.AllGenericMethodSpecs.Length,
+             _ => false
+         };
+ 
+@@ -136,7 +136,7 @@ public class MetadataUsage(MetadataUsageType type, ulong offset, uint value)
+             switch (Type)
+             {
+                 case MetadataUsageType.MethodRef:
+-                    var methodSpec = context.Metadata.GetMethodSpec((int)value);
++                    var methodSpec = LibCpp2IlMain.TheMetadata!.GetMethodSpec((int)value);
+ 
+                     _cachedGenericMethod = new Cpp2IlMethodRef(methodSpec);
+                     _cachedName = _cachedGenericMethod.ToString();
+@@ -159,7 +159,7 @@ public class MetadataUsage(MetadataUsageType type, ulong offset, uint value)
+     {
+         var encodedType = encoded & 0xE000_0000;
+         var type = (MetadataUsageType)(encodedType >> 29);
+-        if (context.Metadata.MetadataVersion > 106.1f)
++        if (LibCpp2IlMain.TheMetadata!.MetadataVersion > 106.1f)
+             type += 1; //TypeInfo removed in v106.1
+         
+         if (type <= MetadataUsageType.MethodRef && type >= MetadataUsageType.TypeInfo)
+diff --git a/global.json b/global.json
+index 485649e..f1b4520 100644
+--- a/global.json
++++ b/global.json
+@@ -1,7 +1,6 @@
+ {
+   "sdk": {
+-    "version": "9.0.0",
+-    "rollForward": "latestMinor",
+-    "allowPrerelease": false
++    "version": "10.0.400",
++    "rollForward": "latestMajor"
+   }
+-}
++}
+\ No newline at end of file
+-- 
+2.46.0.windows.1
+

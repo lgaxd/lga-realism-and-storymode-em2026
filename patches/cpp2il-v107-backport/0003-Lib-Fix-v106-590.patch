@@ -1,0 +1,29 @@
+From 473ee9c74950ec12923bbee7e04da1ab504fc3f9 Mon Sep 17 00:00:00 2001
+From: BiscuitDev <86505354+Boxofbiscuits97@users.noreply.github.com>
+Date: Tue, 28 Jul 2026 05:58:12 -0400
+Subject: [PATCH 3/5] Lib: Fix v106 (#590)
+
+---
+ LibCpp2IL/Metadata/Il2CppMetadata.cs | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/LibCpp2IL/Metadata/Il2CppMetadata.cs b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+index 96f9927..462a955 100644
+--- a/LibCpp2IL/Metadata/Il2CppMetadata.cs
++++ b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+@@ -552,10 +552,10 @@ public class Il2CppMetadata : ClassReadingBinaryReader
+             start = DateTime.Now;
+             for (var i = 0; i < fieldDefaultValues.Length; i++)
+             {
+-                if(MetadataVersion >= 104 && i == fieldDefaultValues.Length - 1 && fieldDefaultValues[i].fieldIndex.Value == -1)
++                if(MetadataVersion >= 104 && i == fieldDefaultValues.Length - 1 && (fieldDefaultValues[i].fieldIndex.Value == -1 || fieldDefaultValues[i].fieldIndex.Value == int.MaxValue))
+                     //v104 added this silly dummy entry at the end with field and type index -1. We skip it.
++                    //v106 changed it to int.MaxValue, which we will also test for and skip.
+                     continue;
+-                
+                 var il2CppFieldDefaultValue = fieldDefaultValues[i];
+                 _fieldDefaultValueLookup[il2CppFieldDefaultValue.fieldIndex] = il2CppFieldDefaultValue;
+                 _fieldDefaultLookupNew[GetFieldDefinitionFromIndex(il2CppFieldDefaultValue.fieldIndex)] = il2CppFieldDefaultValue;
+-- 
+2.46.0.windows.1
+

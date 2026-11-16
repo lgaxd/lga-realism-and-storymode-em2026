@@ -1,0 +1,136 @@
+From d131a021d6ff9bd8d9ccba88cfd5fa808255439d Mon Sep 17 00:00:00 2001
+From: Sam Byass <sam@byass.me>
+Date: Sun, 7 Jun 2026 23:02:27 +0100
+Subject: [PATCH 1/5] Speculative v106.1 support
+
+---
+ LibCpp2IL/BinarySearcher.cs                      |  4 ++--
+ .../Il2CppMetadataRegistration.cs                | 13 +++++++++++--
+ LibCpp2IL/Metadata/Il2CppMetadata.cs             | 16 +++++++++++++---
+ LibCpp2IL/MetadataUsage.cs                       |  3 +++
+ LibCpp2IL/MetadataUsageType.cs                   |  2 +-
+ 5 files changed, 30 insertions(+), 8 deletions(-)
+
+diff --git a/LibCpp2IL/BinarySearcher.cs b/LibCpp2IL/BinarySearcher.cs
+index a003194..d48ffa7 100644
+--- a/LibCpp2IL/BinarySearcher.cs
++++ b/LibCpp2IL/BinarySearcher.cs
+@@ -282,7 +282,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+     public ulong FindMetadataRegistrationPre24_5()
+     {
+         //We're looking for TypeDefinitionsSizesCount, which is the 4th-to-last field
+-        var sizeOfMr = (ulong)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit);
++        var sizeOfMr = (ulong)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, metadata.MetadataVersion);
+         var ptrSize = binary.is32Bit ? 4ul : 8ul;
+ 
+         var bytesToSubtract = sizeOfMr - ptrSize * 4;
+@@ -312,7 +312,7 @@ public class BinarySearcher(Il2CppBinary binary, int methodCount, int typeDefini
+     public ulong FindMetadataRegistrationPost24_5(Il2CppMetadata metadata)
+     {
+         var ptrSize = binary.is32Bit ? 4ul : 8ul;
+-        var sizeOfMr = (uint)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit);
++        var sizeOfMr = (uint)Il2CppMetadataRegistration.GetStructSize(binary.is32Bit, metadata.MetadataVersion);
+ 
+         LibLogger.VerboseNewline($"\t\t\tLooking for the number of type definitions, 0x{typeDefinitionsCount:X}");
+         var ptrsToNumberOfTypes = FindAllMappedWords((ulong)typeDefinitionsCount).ToList();
+diff --git a/LibCpp2IL/BinaryStructures/Il2CppMetadataRegistration.cs b/LibCpp2IL/BinaryStructures/Il2CppMetadataRegistration.cs
+index 9583f61..48a935c 100644
+--- a/LibCpp2IL/BinaryStructures/Il2CppMetadataRegistration.cs
++++ b/LibCpp2IL/BinaryStructures/Il2CppMetadataRegistration.cs
+@@ -15,8 +15,8 @@ public class Il2CppMetadataRegistration : ReadableClass
+      * Regardless of how we do it, the fact of the matter is that the count fields are (as well as the pointers which of course are) in practice [pointer size] bytes before the next field, not always 4,
+      * so when calculating the total size of this struct, we need to take that into account.
+      */
+-    public static int GetStructSize(bool isBinary32Bit)
+-        => (NumIntFields + NumPointerFields) * (isBinary32Bit ? sizeof(int) : sizeof(long)); //On 32-bit platforms, all pointers (represented in fields by long/ulong) are 32-bit. If this struct is updated, update the number of fields above.
++    public static int GetStructSize(bool isBinary32Bit, float metadataMetadataVersion)
++        => (NumIntFields + NumPointerFields + (metadataMetadataVersion >= 106.1f ? 2 : 0)) * (isBinary32Bit ? sizeof(int) : sizeof(long)); //On 32-bit platforms, all pointers (represented in fields by long/ulong) are 32-bit. If this struct is updated, update the number of fields above.
+ 
+     public long genericClassesCount;
+     public ulong genericClasses;
+@@ -36,6 +36,9 @@ public class Il2CppMetadataRegistration : ReadableClass
+     public ulong typeDefinitionsSizes;
+     public ulong metadataUsagesCount; //this one, and only this one, is defined as size_t. The rest of the counts are int32_t.
+     public ulong metadataUsages;
++    [Version(Min = 106.1f)] public ulong alwaysInitMetadataUsagesCount;
++    [Version(Min = 106.1f)] public ulong alwaysInitMetadataUsages;
++    
+ 
+     public override void Read(ClassReadingBinaryReader reader)
+     {
+@@ -58,5 +61,11 @@ public class Il2CppMetadataRegistration : ReadableClass
+         typeDefinitionsSizes = reader.ReadNUint();
+         metadataUsagesCount = reader.ReadNUint();
+         metadataUsages = reader.ReadNUint();
++        
++        if(IsAtLeast(106.1f))
++        {
++            alwaysInitMetadataUsagesCount = reader.ReadNUint();
++            alwaysInitMetadataUsages = reader.ReadNUint();
++        }
+     }
+ }
+diff --git a/LibCpp2IL/Metadata/Il2CppMetadata.cs b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+index 0384535..71f51ef 100644
+--- a/LibCpp2IL/Metadata/Il2CppMetadata.cs
++++ b/LibCpp2IL/Metadata/Il2CppMetadata.cs
+@@ -139,6 +139,19 @@ public class Il2CppMetadata : ClassReadingBinaryReader
+                 //v31 WITHOUT changes in codereg 
+                 actualVersion = 31;
+         }
++        else if (version == 106)
++        {
++            //6.5.0a6 => v106
++            //  - changes GenericParameterIndex, FieldIndex, DefaultValueDataIndex to variable size
++            //  - changes Il2CppGenericContainer type_argc int32 => uint16, is_method int32 => uint8
++            //6.6.0a6 => 106.1
++            //  - adds 2 new fields to Il2CppMetadataRegistration
++            //  - removes the first value of MetadataUsageType
++            if(unityVersion.GreaterThanOrEquals(6000, 6, 0, UnityVersionType.Alpha, 6))
++                actualVersion = 106.1f;
++            else
++                actualVersion = 106;
++        }
+         else
+         {
+             //6000.3 and 6000.5 alphas made a bunch of quick-succession version changes:
+@@ -160,9 +173,6 @@ public class Il2CppMetadata : ClassReadingBinaryReader
+             //6.5.0a5 => v105
+             //  - changes MethodIndex to variable size.
+             //  - brings the Il2CppClass changes from v38 to v10x.
+-            //6.5.0a6 => v106
+-            //  - changes GenericParameterIndex, FieldIndex, DefaultValueDataIndex to variable size
+-            //  - changes Il2CppGenericContainer type_argc int32 => uint16, is_method int32 => uint8
+             actualVersion = version;
+         }
+ 
+diff --git a/LibCpp2IL/MetadataUsage.cs b/LibCpp2IL/MetadataUsage.cs
+index 87a1fe3..7e6c86e 100644
+--- a/LibCpp2IL/MetadataUsage.cs
++++ b/LibCpp2IL/MetadataUsage.cs
+@@ -159,6 +159,9 @@ public class MetadataUsage(MetadataUsageType type, ulong offset, uint value)
+     {
+         var encodedType = encoded & 0xE000_0000;
+         var type = (MetadataUsageType)(encodedType >> 29);
++        if (context.Metadata.MetadataVersion > 106.1f)
++            type += 1; //TypeInfo removed in v106.1
++        
+         if (type <= MetadataUsageType.MethodRef && type >= MetadataUsageType.TypeInfo)
+         {
+             var index = (uint)(encoded & 0x1FFF_FFFF);
+diff --git a/LibCpp2IL/MetadataUsageType.cs b/LibCpp2IL/MetadataUsageType.cs
+index aca5c5c..d7ce669 100644
+--- a/LibCpp2IL/MetadataUsageType.cs
++++ b/LibCpp2IL/MetadataUsageType.cs
+@@ -2,7 +2,7 @@
+ 
+ public enum MetadataUsageType : uint
+ {
+-    TypeInfo = 1,
++    TypeInfo = 1, //REMOVED in v106.1
+     Type = 2,
+     MethodDef = 3,
+     FieldInfo = 4,
+-- 
+2.46.0.windows.1
+

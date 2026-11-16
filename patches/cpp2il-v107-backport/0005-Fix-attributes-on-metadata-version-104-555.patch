@@ -1,0 +1,202 @@
+From 31ba261ed587dcc2504819f95c5d829eba27f597 Mon Sep 17 00:00:00 2001
+From: Aaron Robinson <aaronrobin1234@gmail.com>
+Date: Sun, 7 Jun 2026 18:14:21 -0500
+Subject: [PATCH 5/5] Fix attributes on metadata version >= 104 (#555)
+
+---
+ .../Contexts/ApplicationAnalysisContext.cs    | 11 +++++++++
+ .../Model/Contexts/AssemblyAnalysisContext.cs |  7 ++++++
+ .../Model/Contexts/HasCustomAttributes.cs     |  9 +++-----
+ .../Model/Contexts/ModuleAnalysisContext.cs   | 23 +++++++++++++++++++
+ .../AttributeAnalysisProcessingLayer.cs       |  8 +++++--
+ .../AsmResolverAssemblyPopulator.cs           |  4 +++-
+ Cpp2IL.Core/Utils/V29AttributeUtils.cs        | 17 ++++++++++----
+ 7 files changed, 66 insertions(+), 13 deletions(-)
+ create mode 100644 Cpp2IL.Core/Model/Contexts/ModuleAnalysisContext.cs
+
+diff --git a/Cpp2IL.Core/Model/Contexts/ApplicationAnalysisContext.cs b/Cpp2IL.Core/Model/Contexts/ApplicationAnalysisContext.cs
+index 5c5bf7d..53fae61 100644
+--- a/Cpp2IL.Core/Model/Contexts/ApplicationAnalysisContext.cs
++++ b/Cpp2IL.Core/Model/Contexts/ApplicationAnalysisContext.cs
+@@ -207,6 +207,17 @@ public class ApplicationAnalysisContext : ContextWithDataStorage
+             
+         return ConcreteGenericMethodsByRef.TryGetValue(methodReference, out var context) ? context : new(methodReference, this);
+     }
++    
++    [return: NotNullIfNotNull(nameof(methodReference))]
++    public MethodAnalysisContext? ResolveContextForMethod(MetadataUsage? methodReference)
++    {
++        return methodReference?.Type switch
++        {
++            null => null,
++            MetadataUsageType.MethodDef => ResolveContextForMethod(methodReference.AsMethod()),
++            MetadataUsageType.MethodRef => ResolveContextForMethod(methodReference.AsGenericMethodRef()),
++        };
++    }
+ 
+     public FieldAnalysisContext? ResolveContextForField(Il2CppFieldDefinition? field)
+     {
+diff --git a/Cpp2IL.Core/Model/Contexts/AssemblyAnalysisContext.cs b/Cpp2IL.Core/Model/Contexts/AssemblyAnalysisContext.cs
+index a04f496..9c37425 100644
+--- a/Cpp2IL.Core/Model/Contexts/AssemblyAnalysisContext.cs
++++ b/Cpp2IL.Core/Model/Contexts/AssemblyAnalysisContext.cs
+@@ -30,6 +30,11 @@ public class AssemblyAnalysisContext : HasCustomAttributesAndName
+     /// </summary>
+     public IEnumerable<TypeAnalysisContext> TopLevelTypes => Types.Where(t => t.DeclaringType == null);
+ 
++    /// <summary>
++    /// The analysis context object for the manifest module of the assembly.
++    /// </summary>
++    public ModuleAnalysisContext ManifestModule { get; }
++
+     /// <summary>
+     /// The code gen module for this assembly.
+     ///
+@@ -180,6 +185,8 @@ public class AssemblyAnalysisContext : HasCustomAttributesAndName
+ 
+         Definition = assemblyDefinition;
+ 
++        ManifestModule = new(this);
++
+         if (AppContext.MetadataVersion >= 24.2f)
+             CodeGenModule = AppContext.Binary.GetCodegenModuleByName(Definition.Image.Name!);
+ 
+diff --git a/Cpp2IL.Core/Model/Contexts/HasCustomAttributes.cs b/Cpp2IL.Core/Model/Contexts/HasCustomAttributes.cs
+index 5d92b65..e04b965 100644
+--- a/Cpp2IL.Core/Model/Contexts/HasCustomAttributes.cs
++++ b/Cpp2IL.Core/Model/Contexts/HasCustomAttributes.cs
+@@ -280,23 +280,20 @@ public abstract class HasCustomAttributes(uint token, ApplicationAnalysisContext
+ 
+         //Diagnostic data
+         var startOfData = blobStream.Position;
+-        var perAttributeStartOffsets = new Dictionary<Il2CppMethodDefinition, long>();
++        var perAttributeStartOffsets = new Dictionary<MethodAnalysisContext, long>();
+ 
+         CustomAttributes = [];
+         foreach (var constructor in constructors)
+         {
+             perAttributeStartOffsets[constructor] = blobStream.Position;
+ 
+-            var attributeTypeContext = AppContext.ResolveContextForType(constructor.DeclaringType!) ?? throw new($"Unable to find type {constructor.DeclaringType!.FullName}");
+-            var attributeMethodContext = attributeTypeContext.GetMethod(constructor) ?? throw new($"Unable to find method {constructor.Name} in type {attributeTypeContext.Definition?.FullName}");
+-
+             try
+             {
+-                CustomAttributes.Add(V29AttributeUtils.ReadAttribute(blobStream, attributeMethodContext, AppContext));
++                CustomAttributes.Add(V29AttributeUtils.ReadAttribute(blobStream, constructor, AppContext));
+             }
+             catch (Exception e)
+             {
+-                Logger.ErrorNewline($"Failed to read attribute data for {constructor}, which has parameters {string.Join(", ", constructor.Parameters!.Select(p => p.Type))}", "CA Restore");
++                Logger.ErrorNewline($"Failed to read attribute data for {constructor}, which has parameters {string.Join(", ", constructor.Parameters.Select(p => p.ParameterType))}", "CA Restore");
+                 Logger.ErrorNewline($"This member ({ToString()}) has {RawIl2CppCustomAttributeData.Length} bytes of data starting at 0x{GetV29BlobOffsets()!.Value.blobStart:X}", "CA Restore");
+                 Logger.ErrorNewline($"The post-constructor data started at 0x{startOfData:X} bytes into our blob", "CA Restore");
+                 Logger.ErrorNewline($"Data for this constructor started at 0x{perAttributeStartOffsets[constructor]:X} bytes into our blob, we are now 0x{blobStream.Position:X} bytes into the blob", "CA Restore");
+diff --git a/Cpp2IL.Core/Model/Contexts/ModuleAnalysisContext.cs b/Cpp2IL.Core/Model/Contexts/ModuleAnalysisContext.cs
+new file mode 100644
+index 0000000..9176e1b
+--- /dev/null
++++ b/Cpp2IL.Core/Model/Contexts/ModuleAnalysisContext.cs
+@@ -0,0 +1,23 @@
++namespace Cpp2IL.Core.Model.Contexts;
++
++/// <summary>
++/// Represents a single Module that was converted using IL2CPP.
++/// </summary>
++public class ModuleAnalysisContext : HasCustomAttributesAndName
++{
++    private AssemblyAnalysisContext _assemblyContext;
++    
++    /// <inheritdoc />
++    override protected int CustomAttributeIndex => -1;
++    /// <inheritdoc />
++    public override AssemblyAnalysisContext CustomAttributeAssembly => _assemblyContext;
++    /// <inheritdoc />
++    public override string DefaultName => _assemblyContext.Definition!.Image.Name!;
++
++    public ModuleAnalysisContext(AssemblyAnalysisContext asmCtx) : base(asmCtx.Definition?.ModuleToken ?? 1, asmCtx.AppContext)
++    {
++        _assemblyContext = asmCtx;
++        
++        InitCustomAttributeData();
++    }
++}
+diff --git a/Cpp2IL.Core/ProcessingLayers/AttributeAnalysisProcessingLayer.cs b/Cpp2IL.Core/ProcessingLayers/AttributeAnalysisProcessingLayer.cs
+index 0439625..5bd462d 100644
+--- a/Cpp2IL.Core/ProcessingLayers/AttributeAnalysisProcessingLayer.cs
++++ b/Cpp2IL.Core/ProcessingLayers/AttributeAnalysisProcessingLayer.cs
+@@ -14,8 +14,12 @@ public class AttributeAnalysisProcessingLayer : Cpp2IlProcessingLayer
+     {
+         var total = appContext.Assemblies.Count + appContext.AllTypes.Select(t => 1 + t.Events.Count + t.Fields.Count + t.Methods.Count + t.Properties.Count).Sum();
+ 
+-        int count = 0;
+-        appContext.Assemblies.ForEach(a => AnalyzeAndRaise(a, ref count, total, progressCallback));
++        var count = 0;
++        foreach (var a in appContext.Assemblies)
++        {
++            AnalyzeAndRaise(a, ref count, total, progressCallback);
++            AnalyzeAndRaise(a.ManifestModule, ref count, total, progressCallback);
++        }
+ 
+         //TODO look into making this parallel
+         foreach (var type in appContext.AllTypes)
+diff --git a/Cpp2IL.Core/Utils/AsmResolver/AsmResolverAssemblyPopulator.cs b/Cpp2IL.Core/Utils/AsmResolver/AsmResolverAssemblyPopulator.cs
+index d0428fa..1b8aaef 100644
+--- a/Cpp2IL.Core/Utils/AsmResolver/AsmResolverAssemblyPopulator.cs
++++ b/Cpp2IL.Core/Utils/AsmResolver/AsmResolverAssemblyPopulator.cs
+@@ -251,7 +251,9 @@ public static class AsmResolverAssemblyPopulator
+         try
+ #endif
+         {
+-            CopyCustomAttributes(asmContext, asmContext.GetExtraData<AssemblyDefinition>("AsmResolverAssembly")!.CustomAttributes);
++            var assembly = asmContext.GetExtraData<AssemblyDefinition>("AsmResolverAssembly")!;
++            CopyCustomAttributes(asmContext, assembly.CustomAttributes);
++            CopyCustomAttributes(asmContext.ManifestModule, assembly.ManifestModule!.CustomAttributes);
+ 
+             foreach (var type in asmContext.Types)
+             {
+diff --git a/Cpp2IL.Core/Utils/V29AttributeUtils.cs b/Cpp2IL.Core/Utils/V29AttributeUtils.cs
+index 3812a08..6319e29 100644
+--- a/Cpp2IL.Core/Utils/V29AttributeUtils.cs
++++ b/Cpp2IL.Core/Utils/V29AttributeUtils.cs
+@@ -14,7 +14,7 @@ namespace Cpp2IL.Core.Utils;
+ 
+ public static class V29AttributeUtils
+ {
+-    public static Il2CppMethodDefinition[] ReadConstructors(Stream stream, uint count, ApplicationAnalysisContext context)
++    public static MethodAnalysisContext[] ReadConstructors(Stream stream, uint count, ApplicationAnalysisContext context)
+     {
+         using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+         var indices = new uint[count];
+@@ -25,7 +25,10 @@ public static class V29AttributeUtils
+         if (ClassReadingBinaryReader.EnableReadableSizeInformation)
+             context.Metadata.TrackRead<AnalyzedCustomAttribute>((int)(4 * count), trackIfFinishedReading: true);
+ 
+-        return indices.Select(i => context.Metadata.methodDefs[i]).ToArray(); //TODO DynWidth: Validate against v105 CA blob once we have one.
++        if (context.Metadata.MetadataVersion >= 104)
++            return indices.Select(i => context.ResolveContextForMethod(MetadataUsage.DecodeMetadataUsage(i, 0)!)).ToArray();
++        else
++            return indices.Select(i => context.ResolveContextForMethod(context.Metadata.methodDefs[i])!).ToArray();
+     }
+ 
+     public static AnalyzedCustomAttribute ReadAttribute(Stream stream, MethodAnalysisContext constructor, ApplicationAnalysisContext context)
+@@ -83,8 +86,14 @@ public static class V29AttributeUtils
+             memberIndex = -(memberIndex + 1);
+ 
+             //Resolve type
+-            var typeDef = context.Metadata.GetTypeDefinitionFromIndex(Il2CppVariableWidthIndex<Il2CppTypeDefinition>.MakeTemporaryForFixedWidthUsage((int)typeIndex)); //DynWidth: typeIndex is already compressed, they didn't make it dynamic
+-            var typeContext = context.ResolveContextForType(typeDef) ?? throw new("Unable to find type " + typeDef);
++            TypeAnalysisContext typeContext;
++            if (context.Metadata.MetadataVersion >= 104)
++                typeContext = constructor.DeclaringType!.DeclaringAssembly.ResolveIl2CppType(context.Binary.GetType(Il2CppVariableWidthIndex<Il2CppType>.MakeTemporaryForFixedWidthUsage((int)typeIndex)));
++            else
++            {
++                var typeDef = context.Metadata.GetTypeDefinitionFromIndex(Il2CppVariableWidthIndex<Il2CppTypeDefinition>.MakeTemporaryForFixedWidthUsage((int)typeIndex)); //DynWidth: typeIndex is already compressed, they didn't make it dynamic
++                typeContext = context.ResolveContextForType(typeDef) ?? throw new("Unable to find type " + typeDef);
++            }
+ 
+             //Get member
+             member = memberListGetter(typeContext)[memberIndex];
+-- 
+2.46.0.windows.1
+
