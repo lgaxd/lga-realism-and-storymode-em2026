@@ -18,6 +18,7 @@ namespace RealismOverhaul.Features;
 public static class RetiredCoach
 {
     const string ButtonName = "RealismOverhaul.HireAsCoach";
+    const string ComebackButtonName = "RealismOverhaul.Comeback";
 
     public static void Apply(Harmony harmony)
     {
@@ -68,11 +69,12 @@ public static class RetiredCoach
             var parent = template.transform.parent;
             var existing = parent.Find(ButtonName);
             var player = user?.TryCast<DataPlayer>();
-            LabelComebackRow(__instance, player != null && __instance._freeBtn.activeSelf && Comeback.IsEligible(player, ignoreFlag: true));
+            var comebackExisting = parent.Find(ComebackButtonName);
 
             if (player == null || !CanBeHiredAsCoach(player))
             {
                 if (existing != null) existing.gameObject.SetActive(false);
+                if (comebackExisting != null) comebackExisting.gameObject.SetActive(false);
                 ResetRows(__instance);
                 _shown = null;
                 return;
@@ -80,11 +82,28 @@ public static class RetiredCoach
 
             _shown = player;
             LogLayoutOnce(__instance);
-            var button = existing != null ? existing.gameObject : CreateButton(template, parent);
+            var rows = new List<GameObject>();
+
+            // Comeback: the game's free-agent row is only a status line, not a button. Replace it
+            // with a real "offer a player contract" row.
+            var comeback = Comeback.IsEligible(player, ignoreFlag: true);
+            if (comeback)
+            {
+                __instance._freeBtn.SetActive(false);
+                var cb = comebackExisting != null ? comebackExisting.gameObject
+                    : CreateButton(template, parent, ComebackButtonName, OnComebackClick);
+                cb.SetActive(true);
+                SetLabel(cb, ComebackLabel());
+                rows.Add(cb);
+            }
+            else if (comebackExisting != null)
+                comebackExisting.gameObject.SetActive(false);
+
+            var button = existing != null ? existing.gameObject : CreateButton(template, parent, ButtonName, OnClick);
             button.SetActive(true);
-            Arrange(__instance, button);
-            var text = button.GetComponentInChildren<TMP_Text>(true);
-            if (text != null) text.text = Label();
+            SetLabel(button, Label());
+            rows.Add(button);
+            Arrange(__instance, rows);
         }
         catch (Exception e)
         {
@@ -114,26 +133,23 @@ public static class RetiredCoach
     const float LineOffset = 14f;
 
     /// The game shows one action row at a time, every row stretched over the whole Actions box.
-    /// When another row is visible (the Comeback offer), split the box: that row moves up half a
-    /// line, ours down half a line. Our clone otherwise sits where the rows do.
-    static void Arrange(PlayerTransferWindow w, GameObject clone)
+    /// Our rows copy that layout; with two rows, the box is split: first up half a line, second down.
+    static void Arrange(PlayerTransferWindow w, IList<GameObject> rows)
     {
-        var rt = clone.GetComponent<RectTransform>();
         var src = w._freeBtn?.GetComponent<RectTransform>();
-        if (rt == null || src == null) return;
-        rt.anchorMin = src.anchorMin;
-        rt.anchorMax = src.anchorMax;
-        rt.pivot = src.pivot;
-        rt.sizeDelta = src.sizeDelta;
-
-        GameObject? visible = null;
-        foreach (var b in ActionButtons(w))
-            if (b != null && b.activeSelf) { visible = b; break; }
-
-        rt.anchoredPosition = new Vector2(0, visible != null ? -LineOffset : 0);
-        if (visible != null)
-            visible.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, LineOffset);
-        clone.transform.SetAsLastSibling(); // drawn on top, so it receives clicks
+        if (src == null) return;
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var rt = rows[i].GetComponent<RectTransform>();
+            if (rt == null) continue;
+            rt.anchorMin = src.anchorMin;
+            rt.anchorMax = src.anchorMax;
+            rt.pivot = src.pivot;
+            rt.sizeDelta = src.sizeDelta;
+            var y = rows.Count == 1 ? 0 : (i == 0 ? LineOffset : -LineOffset);
+            rt.anchoredPosition = new Vector2(0, y);
+            rows[i].transform.SetAsLastSibling(); // drawn on top, so it receives clicks
+        }
     }
 
     /// Undo Arrange's shift of the game's rows (when our button is hidden).
@@ -143,26 +159,10 @@ public static class RetiredCoach
             if (b != null) b.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
     }
 
-    /// For a Comeback-eligible player, say plainly that the game's free-agent row is a player contract.
-    static void LabelComebackRow(PlayerTransferWindow w, bool comeback)
-    {
-        var row = w._freeBtn;
-        if (row == null) return;
-        var text = row.GetComponentInChildren<TMP_Text>(true);
-        if (text == null) return;
-        foreach (var c in text.GetComponents<Component>())
-        {
-            if (c == null || !c.GetIl2CppType().Name.Contains("Localize")) continue;
-            var behaviour = c.TryCast<Behaviour>();
-            if (behaviour != null) behaviour.enabled = !comeback; // re-enabling restores the game's text
-        }
-        if (comeback) text.text = ComebackLabel();
-    }
-
-    static GameObject CreateButton(GameObject template, Transform parent)
+    static GameObject CreateButton(GameObject template, Transform parent, string name, Action onClick)
     {
         var clone = UnityEngine.Object.Instantiate(template, parent);
-        clone.name = ButtonName;
+        clone.name = name;
 
         // The template's text is driven by a localization component; drop it so our label stays.
         foreach (var c in clone.GetComponentsInChildren<Component>(true))
@@ -206,9 +206,24 @@ public static class RetiredCoach
         colors.fadeDuration = 0.08f;
         button.colors = colors;
         button.onClick = new Button.ButtonClickedEvent();
-        button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnClick)));
-        Plugin.Log.LogInfo("[RetiredCoach] 'Hire as coach' button created");
+        button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(onClick));
+        Plugin.Log.LogInfo($"[RetiredCoach] {name} button created");
         return clone;
+    }
+
+    static void SetLabel(GameObject row, string label)
+    {
+        var text = row.GetComponentInChildren<TMP_Text>(true);
+        if (text != null) text.text = label;
+    }
+
+    static void OnComebackClick()
+    {
+        var player = _shown;
+        Plugin.Log.LogInfo($"[RetiredCoach] 'Comeback' clicked for {player?.Id}");
+        if (player == null) return;
+        try { PopupCreator.Instance.ShowOffer(player); }
+        catch (Exception e) { Plugin.Log.LogError($"[RetiredCoach] Comeback offer for {player.Id} failed: {e}"); }
     }
 
     static void OnClick()

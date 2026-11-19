@@ -131,6 +131,15 @@ public static class Comeback
     [HarmonyPostfix]
     static void PlayerOverviewRenewPostfix(DataPlayer? __state) => Restore(__state);
 
+    // Contract tab ("offer contract").
+    [HarmonyPatch(typeof(UserContractWindow), nameof(UserContractWindow.Renew))]
+    [HarmonyPrefix]
+    static void UserContractRenewPrefix(DataUser player, out DataPlayer? __state) => __state = Unflag(player);
+
+    [HarmonyPatch(typeof(UserContractWindow), nameof(UserContractWindow.Renew))]
+    [HarmonyPostfix]
+    static void UserContractRenewPostfix(DataPlayer? __state) => Restore(__state);
+
     // Transfer tab buttons ("offer contract" to a free agent).
     [HarmonyPatch(typeof(PlayerTransferWindow), nameof(PlayerTransferWindow.Renew))]
     [HarmonyPrefix]
