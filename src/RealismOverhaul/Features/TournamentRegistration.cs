@@ -10,10 +10,10 @@ namespace RealismOverhaul.Features;
 /// active tournament, regardless of dates (TournamentEngine.TryRegisterPlayer:
 /// HasActiveRegistrations → NeedsConfirmation, IsTeamActiveInAnyTournament → Refused).
 ///
-/// Phase A: a commitment only blocks the candidate tournament when their Tournament Periods
-/// overlap. Overlapping periods (allowed in the agreed rule when at most one is LAN and no
-/// Match Day clashes) are phase B, pending a check of how the match engine handles a team in two
-/// running tournaments.
+/// A commitment only blocks the candidate tournament when their Tournament Periods overlap, and
+/// (with OverlappingTournaments) only if that would put the team in more than 2 tournaments, or
+/// 2 LANs, on the same day. Same-day matches queue through the calendar (see AcademyMatchdays);
+/// the second carries a fatigue penalty (see DoubleMatchday).
 ///
 /// Both game checks are hot and used by transfers and the AI, so they are changed only while a
 /// registration method runs, and only relative to the tournament being registered for.
@@ -45,13 +45,16 @@ public static class TournamentRegistration
     static bool PeriodsOverlap(DataTournament a, DataTournament b) =>
         a.DateStart.Date <= b.DateEnd.Date && b.DateStart.Date <= a.DateEnd.Date;
 
-    /// The tournament `teamId` is committed to (playing, or registered for one not yet started)
-    /// whose Tournament Period overlaps `candidate`, or null if none.
-    public static DataTournament? FindConflict(DataTournament candidate, string teamId)
+    public const int MaxSimultaneousTournaments = 2;
+
+    /// The commitments of `teamId` (playing, or registered for one not yet started) whose
+    /// Tournament Period overlaps `candidate`.
+    static List<DataTournament> OverlappingCommitments(DataTournament candidate, string teamId)
     {
+        var result = new List<DataTournament>();
         var today = GlobalValues.CurrentDate.Date;
         var active = DataTournaments.ActiveTournaments;
-        if (active == null) return null;
+        if (active == null) return result;
         var count = active.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<DataTournament>>().Count;
         for (var i = 0; i < count; i++)
         {
@@ -59,7 +62,35 @@ public static class TournamentRegistration
             if (t == null || t.Id == candidate.Id || t.Participants == null) continue;
             if (!t.Participants.TryGetValue(teamId, out var state) || state == null) continue;
             var committed = state.IsActive || t.DateStart.Date > today;
-            if (committed && PeriodsOverlap(t, candidate)) return t;
+            if (committed && PeriodsOverlap(t, candidate)) result.Add(t);
+        }
+        return result;
+    }
+
+    /// Why `teamId` may not register for `candidate`, or null if it may.
+    /// Non-overlapping commitments never block. With OverlappingTournaments on, an overlap is
+    /// fine as long as, on every day of the candidate's period, the team would be in at most
+    /// 2 tournaments and at most 1 LAN (a team is in one place at a time; 2 tournaments means at
+    /// most 2 matches a day, played in sequence).
+    public static string? FindConflict(DataTournament candidate, string teamId)
+    {
+        var overlapping = OverlappingCommitments(candidate, teamId);
+        if (overlapping.Count == 0) return null;
+        if (!Plugin.Flags.OverlappingTournaments.Value)
+            return $"overlaps {Describe(overlapping[0])}";
+
+        for (var day = candidate.DateStart.Date; day <= candidate.DateEnd.Date; day = day.AddDays(1))
+        {
+            int tournaments = 1, lans = candidate.IsLan ? 1 : 0;
+            foreach (var t in overlapping)
+            {
+                if (day < t.DateStart.Date || day > t.DateEnd.Date) continue;
+                tournaments++;
+                if (t.IsLan) lans++;
+                if (lans > 1) return $"two LANs at once on {day:yyyy-MM-dd} ({Describe(t)})";
+                if (tournaments > MaxSimultaneousTournaments)
+                    return $"more than {MaxSimultaneousTournaments} tournaments at once on {day:yyyy-MM-dd}";
+            }
         }
         return null;
     }
@@ -70,11 +101,11 @@ public static class TournamentRegistration
         var conflict = FindConflict(_candidate, teamId);
         if (conflict == null)
         {
-            LogOnce($"[Registration] {teamId} is busy elsewhere, but nothing overlaps {Describe(_candidate)}: allowing");
+            LogOnce($"[Registration] {teamId} is busy elsewhere, but may also play {Describe(_candidate)}: allowing");
             __result = false;
         }
         else
-            LogOnce($"[Registration] {teamId} blocked from {Describe(_candidate)}: overlaps {Describe(conflict)}");
+            LogOnce($"[Registration] {teamId} blocked from {Describe(_candidate)}: {conflict}");
     }
 
     static void HasActiveRegistrationsPostfix(DataTeam team, ref bool __result)

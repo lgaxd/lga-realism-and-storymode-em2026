@@ -28,6 +28,8 @@ public class Plugin : BasePlugin
             Features.TournamentRegistration.Apply(harmony);
         if (Flags.AcademyMatchdays.Value)
             Features.AcademyMatchdays.Apply(harmony);
+        if (Flags.OverlappingTournaments.Value)
+            Features.DoubleMatchday.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }

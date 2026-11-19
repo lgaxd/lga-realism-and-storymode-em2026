@@ -170,7 +170,7 @@ public static class OveragePlayer
 
     // 4. AI Academies. AIAcademyOveragePass promotes or lists for sale every AI Academy player older
     // than 23 (age limit compiled in). Sometimes keep one instead: always the Academy's IGL if they
-    // aged out, otherwise each aged-out player with a fixed per-player chance. At most one per Academy.
+    // aged out, otherwise one roll per Academy per season. At most one per Academy.
     [HarmonyPatch(typeof(AiRosterLifecyclePasses), nameof(AiRosterLifecyclePasses.AIAcademyOveragePass))]
     [HarmonyPrefix]
     static void AIAcademyOveragePassPrefix(out bool __state)
@@ -210,18 +210,20 @@ public static class OveragePlayer
     {
         var squad = academy.FullSquad;
         if (squad == null) return null;
-        DataPlayer? chosen = null;
+        DataPlayer? first = null;
         for (var i = 0; i < squad.Count; i++)
         {
             var p = DataPlayers.Get(squad[i]);
             if (p == null || !IsOverage(p)) continue;
-            if (p.IsIGL) return p;
-            if (chosen == null && StableRoll(p.Id) < Plugin.Flags.AiOverageRetentionChance.Value) chosen = p;
+            if (p.IsIGL) return p; // an aged-out IGL is always kept
+            first ??= p;
         }
-        return chosen;
+        // One roll per Academy per season, so the share of Academies keeping one stays near the chance.
+        var roll = StableRoll($"{academy.Id}|{GlobalValues.CurrentDate.Year}");
+        return first != null && roll < Plugin.Flags.AiOverageRetentionChance.Value ? first : null;
     }
 
-    /// Deterministic 0-99 roll per player, so the AI's decision is stable across weekly passes.
+    /// Deterministic 0-99 roll, so the AI's decision is stable across weekly passes.
     static int StableRoll(string id)
     {
         unchecked

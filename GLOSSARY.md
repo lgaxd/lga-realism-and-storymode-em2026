@@ -80,6 +80,10 @@ _Avoid_: tournament dates
 A day on which a team actually has a match in a tournament.
 _Avoid_: game day, fixture date
 
+**Double Match Day**:
+A day on which a team has two matches, one from each of two overlapping tournaments. They are played one after the other, and the team plays the second one tired. A team is never in more than two tournaments at once.
+_Avoid_: match clash, back-to-back matches
+
 **LAN** / **Online**:
 Whether a tournament is played in person at a venue or remotely. A team can be at only one LAN at a time.
 _Avoid_: offline, remote
