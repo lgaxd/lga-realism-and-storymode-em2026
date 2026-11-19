@@ -24,6 +24,8 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(Guid);
         if (Flags.OveragePlayer.Value)
             Features.OveragePlayer.Apply(harmony);
+        if (Flags.TournamentRegistration.Value)
+            Features.TournamentRegistration.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }

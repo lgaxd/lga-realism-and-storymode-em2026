@@ -1,4 +1,5 @@
 using HarmonyLib;
+using RealismOverhaul.Infrastructure;
 
 namespace RealismOverhaul.Features;
 
@@ -14,12 +15,12 @@ public static class OveragePlayer
         Plugin.Log.LogInfo(
             $"[Overage] game constants: AcademyHardRefusalAge={WillingnessCalculator.AcademyHardRefusalAge}, " +
             $"AiMarketRules.AcademyMaxSigningAge={AiMarketRules.AcademyMaxSigningAge}");
-        _harmony = harmony;
+        _ageClamp = new ScopedPatch(harmony,
+            AccessTools.PropertyGetter(typeof(DataUser), nameof(DataUser.Age)),
+            AccessTools.Method(typeof(OveragePlayer), nameof(ClampAgePostfix)));
         harmony.PatchAll(typeof(OveragePlayer));
         Plugin.Log.LogInfo("[Overage] patches applied");
     }
-
-    static Harmony _harmony = null!;
 
     public static bool IsOverage(DataPlayer player) => player.Age > AcademyAgeLimit;
 
@@ -111,9 +112,7 @@ public static class OveragePlayer
     // game's own capacity/tournament/move logic runs unchanged. The get_Age patch exists only
     // inside that window, because the getter is hot.
     static readonly HashSet<string> _clampedIds = new();
-    static int _clampDepth;
-    static readonly System.Reflection.MethodInfo AgeGetter = AccessTools.PropertyGetter(typeof(DataUser), nameof(DataUser.Age));
-    static readonly HarmonyMethod ClampAge = new(AccessTools.Method(typeof(OveragePlayer), nameof(ClampAgePostfix)));
+    static ScopedPatch _ageClamp = null!;
 
     static void ClampAgePostfix(DataUser __instance, ref int __result)
     {
@@ -134,19 +133,17 @@ public static class OveragePlayer
     /// Starts an age-clamp window: while it is open, the given players' ages read as 23.
     static bool BeginClamp(IEnumerable<string> playerIds)
     {
-        var any = false;
-        foreach (var id in playerIds) any |= _clampedIds.Add(id);
-        if (!any && _clampDepth == 0) return false;
-        if (_clampDepth++ == 0)
-            _harmony.Patch(AgeGetter, postfix: ClampAge);
+        foreach (var id in playerIds) _clampedIds.Add(id);
+        if (_clampedIds.Count == 0) return false;
+        _ageClamp.Begin();
         return true;
     }
 
     static void EndClamp(bool began)
     {
-        if (!began || --_clampDepth > 0) return;
-        _clampedIds.Clear();
-        _harmony.Unpatch(AgeGetter, HarmonyPatchType.Postfix, _harmony.Id);
+        if (!began) return;
+        _ageClamp.End();
+        if (!_ageClamp.IsOpen) _clampedIds.Clear();
     }
 
     [HarmonyPatch(typeof(PlayerSquadCard), nameof(PlayerSquadCard.HasAcademyRoomNow))]
@@ -181,6 +178,7 @@ public static class OveragePlayer
         __state = false;
         if (!Plugin.Flags.AiOverageRetention.Value) return;
         var keep = new List<string>();
+        var aiAcademies = 0;
         // IReadOnlyList's Count lives on the IReadOnlyCollection interface in the interop.
         var teams = DataTeams.List;
         var count = teams.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<DataTeam>>().Count;
@@ -188,17 +186,25 @@ public static class OveragePlayer
         {
             var academy = teams[i];
             if (academy == null || !academy.IsAcademy || DataTeam.IsOwnedByUser(academy)) continue;
+            aiAcademies++;
             var kept = PickRetainedOverage(academy);
             if (kept != null) keep.Add(kept.Id);
         }
         if (keep.Count == 0) return;
-        Plugin.Log.LogInfo($"[Overage] AI Academies keeping {keep.Count} Overage Player(s): {string.Join(", ", keep)}");
+        var summary = string.Join(", ", keep);
+        if (summary != _lastRetentionSummary)
+        {
+            _lastRetentionSummary = summary;
+            Plugin.Log.LogInfo($"[Overage] {keep.Count} of {aiAcademies} AI Academies keeping an Overage Player: {summary}");
+        }
         __state = BeginClamp(keep);
     }
 
     [HarmonyPatch(typeof(AiRosterLifecyclePasses), nameof(AiRosterLifecyclePasses.AIAcademyOveragePass))]
     [HarmonyPostfix]
     static void AIAcademyOveragePassPostfix(bool __state) => EndClamp(__state);
+
+    static string? _lastRetentionSummary;
 
     static DataPlayer? PickRetainedOverage(DataTeam academy)
     {

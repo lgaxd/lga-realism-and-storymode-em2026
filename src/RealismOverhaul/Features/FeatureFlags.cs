@@ -8,6 +8,9 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> OveragePlayer { get; } = config.Bind("Features", "OveragePlayer", true,
         "Allow one Academy player older than the Academy age limit (the Overage Player).");
 
+    public ConfigEntry<bool> TournamentRegistration { get; } = config.Bind("Features", "TournamentRegistration", true,
+        "Allow registering for a tournament while committed to another one, when their dates do not overlap.");
+
     public ConfigEntry<bool> AiOverageRetention { get; } = config.Bind("Features", "AiOverageRetention", true,
         "AI Academies sometimes keep one player who aged out (always their IGL) instead of selling them.");
 
