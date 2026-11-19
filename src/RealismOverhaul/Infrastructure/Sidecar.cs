@@ -27,6 +27,7 @@ public static class Sidecar
     static readonly List<ISection> _sections = new();
     static bool _applied;
     static string? _loadedSlot;
+    static JsonObject? _loadedRoot; // kept so sections of disabled features survive a save (ADR 0003)
 
     public static void Register(ISection section) => _sections.Add(section);
 
@@ -75,6 +76,7 @@ public static class Sidecar
             try { s.Load(root?[s.Name]); }
             catch (Exception e) { Plugin.Log.LogError($"[Sidecar] section {s.Name} failed to load: {e}"); s.Load(null); }
         }
+        _loadedRoot = root;
         Plugin.Log.LogInfo($"[Sidecar] slot {slotId}: {(root == null ? "no mod data yet, rebuilding from the game" : $"loaded {path}")}");
     }
 
@@ -87,7 +89,13 @@ public static class Sidecar
         if (dir == null) return;
         try
         {
-            var root = new JsonObject { ["version"] = Version, ["slot"] = slotId };
+            // Start from what was loaded for this slot, so sections of features that are switched off
+            // (not registered) are written back untouched.
+            var root = slotId == _loadedSlot && _loadedRoot != null
+                ? (JsonObject)JsonNode.Parse(_loadedRoot.ToJsonString())!
+                : new JsonObject();
+            root["version"] = Version;
+            root["slot"] = slotId;
             foreach (var s in _sections)
             {
                 try { root[s.Name] = s.Save(); }
