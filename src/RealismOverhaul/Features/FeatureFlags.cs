@@ -12,7 +12,7 @@ public class FeatureFlags(ConfigFile config)
         "Allow registering for a tournament while committed to another one, when their dates do not overlap.");
 
     public ConfigEntry<bool> AcademyMatchdays { get; } = config.Bind("Features", "AcademyMatchdays", true,
-        "EXPERIMENTAL: Academy matches stop the calendar like Main Roster matches. Back up your save first.");
+        "Academy matches stop the calendar like Main Roster matches (watch or simulate).");
 
     public ConfigEntry<bool> AiOverageRetention { get; } = config.Bind("Features", "AiOverageRetention", true,
         "AI Academies sometimes keep one player who aged out (always their IGL) instead of selling them.");

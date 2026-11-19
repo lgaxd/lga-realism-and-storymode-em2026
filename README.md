@@ -16,9 +16,10 @@ Not affiliated with or endorsed by the game's developer.
 | Feature | Status |
 |---|---|
 | **Overage Player:** an Academy may hold one player older than 23 (sign, refuse, move down) | ✅ Works |
-| AI Academies sometimes keep one player who aged out (always their IGL) | 🧪 Built, not yet verified |
-| Register for a tournament while playing another, when dates and LAN/Online allow it | Planned |
-| Academy matches stop the calendar like Main Roster matches (watch or simulate) | Planned |
+| AI Academies sometimes keep one player who aged out (always their IGL) | ✅ Works |
+| Register for a tournament while playing another, when their dates do not overlap | ✅ Works |
+| Overlapping tournaments (one LAN + Online), playing both on the same day | Planned |
+| Academy matches stop the calendar like Main Roster matches (watch or simulate) | ✅ Works |
 | Retired players: hire as coach, Comeback within 5 years, coach as Emergency Sub | Planned |
 | Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) + IGL + CT Positions per map | Planned |
 | Map Familiarity and CT/T Side Bias | Planned |
