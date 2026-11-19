@@ -29,8 +29,13 @@ public static class Comeback
         Plugin.Log.LogInfo("[Comeback] patches applied");
     }
 
+    /// Players already retired in the starting database have no retirement date; count them as
+    /// retired on the career's start date.
+    public static Il2CppSystem.DateTime RetiredOn(DataPlayer p) =>
+        p.RetirementLeaveDate.Year > 1900 ? p.RetirementLeaveDate : GlobalValues.StartGameDate;
+
     public static double YearsRetired(DataPlayer p) =>
-        Math.Max(0, (GlobalValues.CurrentDate - p.RetirementLeaveDate).TotalDays / 365.25);
+        Math.Max(0, (GlobalValues.CurrentDate - RetiredOn(p)).TotalDays / 365.25);
 
     /// The free-agent or employed staff record the game created for this player at retirement.
     static DataStaff? StaffRecordOf(DataPlayer p) => DataStaffs.Get(RetirementRoll.RetirementStaffId(p.Id));

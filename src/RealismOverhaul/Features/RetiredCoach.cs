@@ -69,8 +69,10 @@ public static class RetiredCoach
             }
 
             _shown = player;
+            LogLayoutOnce(__instance);
             var button = existing != null ? existing.gameObject : CreateButton(template, parent);
             button.SetActive(true);
+            PlaceInFreeSlot(__instance, button);
             var text = button.GetComponentInChildren<TMP_Text>(true);
             if (text != null) text.text = Label();
         }
@@ -80,21 +82,48 @@ public static class RetiredCoach
         }
     }
 
+    /// The transfer tab's action buttons, positioned absolutely inside the "Actions" box.
+    static GameObject?[] ActionButtons(PlayerTransferWindow w) =>
+        new[] { w._buyBtn, w._sellBtn, w._freeBtn, w._negolationsBtn, w._removeBtn, w._endcontractBtn, w._transfernowBtn, w._banteamBtn };
+
+    static bool _loggedLayout;
+
+    static void LogLayoutOnce(PlayerTransferWindow w)
+    {
+        if (_loggedLayout) return;
+        _loggedLayout = true;
+        foreach (var b in ActionButtons(w))
+        {
+            if (b == null) continue;
+            var rt = b.GetComponent<RectTransform>();
+            Plugin.Log.LogInfo($"[RetiredCoach][layout] {b.name}: active={b.activeSelf}, parent={b.transform.parent?.name}, " +
+                               $"pos={rt?.anchoredPosition}, size={rt?.sizeDelta}");
+        }
+    }
+
+    /// Puts the clone in the slot of an action button the game hid for this player, which is inside
+    /// the Actions box; falls back to the template's own slot.
+    static void PlaceInFreeSlot(PlayerTransferWindow w, GameObject clone)
+    {
+        var rt = clone.GetComponent<RectTransform>();
+        if (rt == null) return;
+        GameObject? slot = null;
+        foreach (var b in ActionButtons(w))
+            if (b != null && !b.activeSelf && b.transform.parent == clone.transform.parent) { slot = b; break; }
+        var src = (slot ?? w._freeBtn)?.GetComponent<RectTransform>();
+        if (src == null) return;
+        rt.anchorMin = src.anchorMin;
+        rt.anchorMax = src.anchorMax;
+        rt.pivot = src.pivot;
+        rt.anchoredPosition = src.anchoredPosition;
+        rt.sizeDelta = src.sizeDelta;
+        clone.transform.SetAsLastSibling(); // drawn on top, so it receives clicks
+    }
+
     static GameObject CreateButton(GameObject template, Transform parent)
     {
         var clone = UnityEngine.Object.Instantiate(template, parent);
         clone.name = ButtonName;
-
-        // Without a layout group the clone would sit exactly on top of the template: move it down.
-        if (parent.GetComponent<LayoutGroup>() == null)
-        {
-            var rt = clone.GetComponent<RectTransform>();
-            var src = template.GetComponent<RectTransform>();
-            if (rt != null && src != null)
-                rt.anchoredPosition = src.anchoredPosition - new Vector2(0, src.rect.height * 1.15f);
-        }
-        else
-            clone.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
 
         // The template's text is driven by a localization component; drop it so our label stays.
         foreach (var c in clone.GetComponentsInChildren<Component>(true))
@@ -107,6 +136,8 @@ public static class RetiredCoach
             button.onClick = new Button.ButtonClickedEvent(); // drops the template's persistent listeners
             button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnClick)));
         }
+        else
+            Plugin.Log.LogWarning("[RetiredCoach] template has no Button component; the clone will not be clickable");
         Plugin.Log.LogInfo("[RetiredCoach] 'Hire as coach' button created");
         return clone;
     }
@@ -114,6 +145,7 @@ public static class RetiredCoach
     static void OnClick()
     {
         var player = _shown;
+        Plugin.Log.LogInfo($"[RetiredCoach] 'Hire as coach' clicked for {player?.Id}");
         if (player == null) return;
         try
         {
