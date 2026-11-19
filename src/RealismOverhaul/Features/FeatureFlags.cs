@@ -27,4 +27,7 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<int> AiOverageRetentionChance { get; } = config.Bind("Tuning", "AiOverageRetentionChance", 15,
         new ConfigDescription("Percent chance per season that an AI Academy keeps one player who aged out.",
             new AcceptableValueRange<int>(0, 100)));
+
+    public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
+        "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

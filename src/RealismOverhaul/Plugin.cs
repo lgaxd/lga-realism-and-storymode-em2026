@@ -21,6 +21,9 @@ public class Plugin : BasePlugin
         Flags = new Features.FeatureFlags(Config);
         Log.LogInfo($"{Name} {Version} loading");
 
+        if (Flags.ClassInjectionSelfTest.Value)
+            Infrastructure.ClassInjectionSelfTest.Run();
+
         var harmony = new Harmony(Guid);
         if (Flags.OveragePlayer.Value)
             Features.OveragePlayer.Apply(harmony);
