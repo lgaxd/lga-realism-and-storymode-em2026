@@ -41,9 +41,12 @@ public static class Comeback
     static DataStaff? StaffRecordOf(DataPlayer p) => DataStaffs.Get(RetirementRoll.RetirementStaffId(p.Id));
 
     /// True if `p` is retired, within the Comeback window, and not employed as staff.
-    public static bool IsEligible(DataPlayer? p)
+    public static bool IsEligible(DataPlayer? p, bool ignoreFlag = false)
     {
-        if (p == null || !p.Retired) return false;
+        // ignoreFlag: also count a player whose Retired flag is temporarily cleared by an offer check.
+        if (p == null) return false;
+        var retired = p.Retired || ignoreFlag && IsTemporarilyUnflagged(p);
+        if (!retired) return false;
         if (YearsRetired(p) > Plugin.Flags.ComebackMaxYears.Value) return false;
         var staff = StaffRecordOf(p);
         return staff == null || string.IsNullOrEmpty(staff.TeamId);

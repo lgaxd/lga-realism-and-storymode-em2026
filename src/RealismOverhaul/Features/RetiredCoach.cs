@@ -35,17 +35,25 @@ public static class RetiredCoach
         return staff == null || string.IsNullOrEmpty(staff.TeamId);
     }
 
-    static string Label()
+    static string Lang()
     {
-        try
-        {
-            var code = LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en";
-            if (code.StartsWith("pt")) return "Contratar como treinador";
-            if (code.StartsWith("es")) return "Contratar como entrenador";
-        }
-        catch { /* localization not ready: fall back to English */ }
-        return "Hire as coach";
+        try { return LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en"; }
+        catch { return "en"; } // localization not ready
     }
+
+    static string Label() => Lang() switch
+    {
+        var c when c.StartsWith("pt") => "Contratar como treinador",
+        var c when c.StartsWith("es") => "Contratar como entrenador",
+        _ => "Hire as coach",
+    };
+
+    static string ComebackLabel() => Lang() switch
+    {
+        var c when c.StartsWith("pt") => "Retorno: oferecer contrato como jogador",
+        var c when c.StartsWith("es") => "Regreso: ofrecer contrato como jugador",
+        _ => "Comeback: offer a player contract",
+    };
 
     static DataPlayer? _shown;
 
@@ -60,10 +68,12 @@ public static class RetiredCoach
             var parent = template.transform.parent;
             var existing = parent.Find(ButtonName);
             var player = user?.TryCast<DataPlayer>();
+            LabelComebackRow(__instance, player != null && __instance._freeBtn.activeSelf && Comeback.IsEligible(player, ignoreFlag: true));
 
             if (player == null || !CanBeHiredAsCoach(player))
             {
                 if (existing != null) existing.gameObject.SetActive(false);
+                ResetRows(__instance);
                 _shown = null;
                 return;
             }
@@ -72,7 +82,7 @@ public static class RetiredCoach
             LogLayoutOnce(__instance);
             var button = existing != null ? existing.gameObject : CreateButton(template, parent);
             button.SetActive(true);
-            PlaceInFreeSlot(__instance, button);
+            Arrange(__instance, button);
             var text = button.GetComponentInChildren<TMP_Text>(true);
             if (text != null) text.text = Label();
         }
@@ -101,23 +111,52 @@ public static class RetiredCoach
         }
     }
 
-    /// Puts the clone in the slot of an action button the game hid for this player, which is inside
-    /// the Actions box; falls back to the template's own slot.
-    static void PlaceInFreeSlot(PlayerTransferWindow w, GameObject clone)
+    const float LineOffset = 14f;
+
+    /// The game shows one action row at a time, every row stretched over the whole Actions box.
+    /// When another row is visible (the Comeback offer), split the box: that row moves up half a
+    /// line, ours down half a line. Our clone otherwise sits where the rows do.
+    static void Arrange(PlayerTransferWindow w, GameObject clone)
     {
         var rt = clone.GetComponent<RectTransform>();
-        if (rt == null) return;
-        GameObject? slot = null;
-        foreach (var b in ActionButtons(w))
-            if (b != null && !b.activeSelf && b.transform.parent == clone.transform.parent) { slot = b; break; }
-        var src = (slot ?? w._freeBtn)?.GetComponent<RectTransform>();
-        if (src == null) return;
+        var src = w._freeBtn?.GetComponent<RectTransform>();
+        if (rt == null || src == null) return;
         rt.anchorMin = src.anchorMin;
         rt.anchorMax = src.anchorMax;
         rt.pivot = src.pivot;
-        rt.anchoredPosition = src.anchoredPosition;
         rt.sizeDelta = src.sizeDelta;
+
+        GameObject? visible = null;
+        foreach (var b in ActionButtons(w))
+            if (b != null && b.activeSelf) { visible = b; break; }
+
+        rt.anchoredPosition = new Vector2(0, visible != null ? -LineOffset : 0);
+        if (visible != null)
+            visible.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, LineOffset);
         clone.transform.SetAsLastSibling(); // drawn on top, so it receives clicks
+    }
+
+    /// Undo Arrange's shift of the game's rows (when our button is hidden).
+    static void ResetRows(PlayerTransferWindow w)
+    {
+        foreach (var b in ActionButtons(w))
+            if (b != null) b.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+    }
+
+    /// For a Comeback-eligible player, say plainly that the game's free-agent row is a player contract.
+    static void LabelComebackRow(PlayerTransferWindow w, bool comeback)
+    {
+        var row = w._freeBtn;
+        if (row == null) return;
+        var text = row.GetComponentInChildren<TMP_Text>(true);
+        if (text == null) return;
+        foreach (var c in text.GetComponents<Component>())
+        {
+            if (c == null || !c.GetIl2CppType().Name.Contains("Localize")) continue;
+            var behaviour = c.TryCast<Behaviour>();
+            if (behaviour != null) behaviour.enabled = !comeback; // re-enabling restores the game's text
+        }
+        if (comeback) text.text = ComebackLabel();
     }
 
     static GameObject CreateButton(GameObject template, Transform parent)
