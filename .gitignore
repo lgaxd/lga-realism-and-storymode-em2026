@@ -4,3 +4,4 @@ vendor/
 tools-src/
 build.log
 /codemap/
+/*log*.txt
