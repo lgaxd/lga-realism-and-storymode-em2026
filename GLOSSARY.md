@@ -51,7 +51,7 @@ How comfortable a player is on a specific map (0–100). It grows with play and 
 _Avoid_: map rating, map skill
 
 **Side Bias**:
-How much better or worse a player performs on CT than on T, based on Role and CT Position.
+Whether a player is stronger on CT or on T, from his Role: Anchors and Supports lean CT, Entries and Traders lean T. A lineup's lean pays off on maps that favour that side.
 _Avoid_: CT rating, T rating
 
 **Retired Player**:

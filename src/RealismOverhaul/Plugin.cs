@@ -41,6 +41,8 @@ public class Plugin : BasePlugin
             Features.DoubleMatchday.Apply(harmony);
         if (Flags.Roles.Value)
             Features.Roles.Apply(harmony);
+        if (Flags.MapFamiliarity.Value)
+            Features.MapFamiliarity.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }

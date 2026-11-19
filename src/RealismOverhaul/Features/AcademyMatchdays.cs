@@ -26,7 +26,7 @@ public static class AcademyMatchdays
     static bool Involves(DataMatch m, string teamId) => m.Team1Id == teamId || m.Team2Id == teamId;
 
     static string Describe(DataMatch? m) =>
-        m == null ? "<null>" : $"{m.Team1Id} vs {m.Team2Id} (tournament {m.TournamentId}, {m.Date:yyyy-MM-dd HH:mm}, over={m.IsMatchOver})";
+        m == null ? "<null>" : $"{m.Team1Id} vs {m.Team2Id} (tournament {m.TournamentId}, {m.Date.ToString("yyyy-MM-dd HH:mm")}, over={m.IsMatchOver})";
 
     static bool IsAcademyMatch(DataMatch? m)
     {
@@ -46,7 +46,7 @@ public static class AcademyMatchdays
         {
             var m = today[i];
             if (m == null || m.IsMatchOver || !Involves(m, academyId)) continue;
-            var key = $"{m.Team1Id}|{m.Team2Id}|{m.Date:yyyyMMddHHmm}";
+            var key = $"{m.Team1Id}|{m.Team2Id}|{m.Date.ToString("yyyyMMddHHmm")}";
             if (key != _lastLoggedMatch)
             {
                 _lastLoggedMatch = key;

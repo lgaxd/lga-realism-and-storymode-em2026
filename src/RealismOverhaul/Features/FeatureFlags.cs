@@ -53,6 +53,17 @@ public class FeatureFlags(ConfigFile config)
         new ConfigDescription("Scales the Role Balance bonus/penalty (0 = off, 1 = default, max -8%/+2% at 1).",
             new AcceptableValueRange<float>(0f, 2f)));
 
+    public ConfigEntry<bool> MapFamiliarity { get; } = config.Bind("Features", "MapFamiliarity", true,
+        "Per-player Map Familiarity and Side Bias affect map results; CT Positions are assigned by Role. Data is saved next to the game's save.");
+
+    public ConfigEntry<float> FamiliarityStrength { get; } = config.Bind("Tuning", "FamiliarityStrength", 0.5f,
+        new ConfigDescription("Weight of the lineups' Map Familiarity relative to the game's own team map mastery.",
+            new AcceptableValueRange<float>(0f, 2f)));
+
+    public ConfigEntry<float> SideBiasStrength { get; } = config.Bind("Tuning", "SideBiasStrength", 0.3f,
+        new ConfigDescription("Weight of Side Bias on CT- or T-sided maps (fraction of the game's maximum map mastery points).",
+            new AcceptableValueRange<float>(0f, 1f)));
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

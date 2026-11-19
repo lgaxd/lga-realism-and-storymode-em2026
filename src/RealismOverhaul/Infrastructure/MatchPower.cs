@@ -32,7 +32,7 @@ public static class MatchPower
         harmony.PatchAll(typeof(MatchPower));
     }
 
-    public static string Key(DataMatch m) => $"{m.Team1Id}|{m.Team2Id}|{m.TournamentId}|{m.Date:yyyyMMddHHmm}";
+    public static string Key(DataMatch m) => $"{m.Team1Id}|{m.Team2Id}|{m.TournamentId}|{m.Date.ToString("yyyyMMddHHmm")}";
 
     static void CalculatePowerPostfix(DataPlayer __instance, ref float __result)
     {

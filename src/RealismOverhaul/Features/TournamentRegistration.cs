@@ -116,7 +116,7 @@ public static class TournamentRegistration
     }
 
     static string Describe(DataTournament t) =>
-        $"'{t.Name}' ({t.DateStart:yyyy-MM-dd}..{t.DateEnd:yyyy-MM-dd}, {(t.IsLan ? "LAN" : "Online")})";
+        $"'{t.Name}' ({t.DateStart.ToString("yyyy-MM-dd")}..{t.DateEnd.ToString("yyyy-MM-dd")}, {(t.IsLan ? "LAN" : "Online")})";
 
     static bool Begin(DataTournament? candidate)
     {
