@@ -26,6 +26,8 @@ public class Plugin : BasePlugin
             Features.OveragePlayer.Apply(harmony);
         if (Flags.TournamentRegistration.Value)
             Features.TournamentRegistration.Apply(harmony);
+        if (Flags.AcademyMatchdays.Value)
+            Features.AcademyMatchdays.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }
