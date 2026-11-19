@@ -39,7 +39,7 @@ Terms are defined in [GLOSSARY.md](GLOSSARY.md); design decisions are in [docs/a
 
 - Esports Manager 2026 on Windows (tested on the build using Unity 6000.5.10f1).
 - [BepInEx 6 Bleeding Edge build #785](https://builds.bepinex.dev/projects/bepinex_be), Unity IL2CPP x64.
-- A patched Cpp2IL, because no official BepInEx build reads this game's IL2CPP metadata (v107) yet. See [Patched Cpp2IL](#patched-cpp2il).
+- A patched Cpp2IL and a patched Il2CppInterop, because no official BepInEx build supports this game's Unity version (6000.5, IL2CPP metadata v107) yet. See [Patched Cpp2IL](#patched-cpp2il) and [Patched Il2CppInterop](#patched-il2cppinterop).
 
 > Install BepInEx only from the official build server. Do not use third-party repacks: one repack for this game was quarantined by Nexus Mods for containing a trojan (November 2026).
 
@@ -47,10 +47,9 @@ Terms are defined in [GLOSSARY.md](GLOSSARY.md); design decisions are in [docs/a
 
 1. **Back up your saves:** `%USERPROFILE%\AppData\LocalLow\NeuronaGames\EsportsManager\Save`.
 2. Download `BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.785+6abdba4.zip` from the [official build server](https://builds.bepinex.dev/projects/bepinex_be/785/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.785%2B6abdba4.zip) and extract it into the game folder (the one with `EsportsManager.exe`).
-3. Build the patched Cpp2IL and copy its four DLLs into `BepInEx\core` (see below).
-4. Open `BepInEx\config\BepInEx.cfg` (created after the first launch) and set `UnityLogListening = false`. Unity log hooking needs class injection, which does not work on this Unity version yet.
-5. Launch the game once and wait for the main menu. The first launch generates interop assemblies and takes a few minutes.
-6. Build the mod (see [Building](#building)) and copy `RealismOverhaul.dll` to `BepInEx\plugins\RealismOverhaul\`.
+3. Build the patched Cpp2IL and the patched Il2CppInterop, and copy their DLLs into `BepInEx\core` (see below).
+4. Launch the game once and wait for the main menu. The first launch generates interop assemblies and takes a few minutes.
+5. Build the mod (see [Building](#building)) and copy `RealismOverhaul.dll` to `BepInEx\plugins\RealismOverhaul\`.
 
 To uninstall, delete `winhttp.dll`, `doorstop_config.ini`, `.doorstop_version`, `changelog.txt`, and the `BepInEx` and `dotnet` folders from the game folder.
 
@@ -69,6 +68,20 @@ dotnet build Cpp2IL.Core/Cpp2IL.Core.csproj -c Release -f netstandard2.0 -o out
 ```
 
 Copy `Cpp2IL.Core.dll`, `LibCpp2IL.dll`, `StableNameDotNet.dll` and `WasmDisassembler.dll` from `out` into `BepInEx\core`, replacing the originals. Patch `0004` points `global.json` at .NET SDK 10.0.400; edit it if you use a different SDK.
+
+### Patched Il2CppInterop
+
+Il2CppInterop 1.5.3 (bundled with BepInEx #785) lacks Unity 6000.5's native struct layouts, which breaks class injection. The patch in [patches/il2cppinterop-6000.5/](patches/il2cppinterop-6000.5/) adds them, ported from [ds5678/Il2CppInterop](https://github.com/ds5678/Il2CppInterop).
+
+```sh
+git clone https://github.com/BepInEx/Il2CppInterop.git
+cd Il2CppInterop
+git checkout -b em2026 dbda1cb
+git am ../<this-repo>/patches/il2cppinterop-6000.5/*.patch
+dotnet build Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release -o out
+```
+
+Copy `Il2CppInterop.Runtime.dll` from `out` into `BepInEx\core`, replacing the original. On startup the mod logs `[SelfTest] class injection OK` when this works.
 
 ## Building
 
@@ -94,7 +107,7 @@ Both only read files. Their output is derived from the game and is not committed
 
 ## Credits
 
-- [BepInEx](https://github.com/BepInEx/BepInEx), [Il2CppInterop](https://github.com/BepInEx/Il2CppInterop) and [HarmonyX](https://github.com/BepInEx/HarmonyX).
+- [BepInEx](https://github.com/BepInEx/BepInEx), [Il2CppInterop](https://github.com/BepInEx/Il2CppInterop) and [HarmonyX](https://github.com/BepInEx/HarmonyX). The Unity 6000.5 struct layouts come from [ds5678/Il2CppInterop](https://github.com/ds5678/Il2CppInterop).
 - [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL) by Samboy063 and contributors (MIT). The backport patches are their work, applied to an older version.
 - [Iced](https://github.com/icedland/iced), the x86 disassembler used by `tools/Disasm`.
 

@@ -190,13 +190,13 @@ public static class OveragePlayer
             var kept = PickRetainedOverage(academy);
             if (kept != null) keep.Add(kept.Id);
         }
-        if (keep.Count == 0) return;
-        var summary = string.Join(", ", keep);
+        var summary = keep.Count == 0 ? "(none)" : string.Join(", ", keep);
         if (summary != _lastRetentionSummary)
         {
             _lastRetentionSummary = summary;
             Plugin.Log.LogInfo($"[Overage] {keep.Count} of {aiAcademies} AI Academies keeping an Overage Player: {summary}");
         }
+        if (keep.Count == 0) return;
         __state = BeginClamp(keep);
     }
 
