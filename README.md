@@ -23,8 +23,8 @@ Not affiliated with or endorsed by the game's developer.
 | Retired players: 'Hire as coach' button, Comeback within 5 years (skills decay with time away) | ✅ Works |
 | Former-player coach as Emergency Sub (instead of a forfeit) | 🧪 Built, not yet verified |
 | Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) with Role Balance in matches | ✅ Works |
-| CT Positions per map | Planned |
-| Map Familiarity and CT/T Side Bias | Planned |
+| CT Positions per map (assigned by Role; manual setup screen planned) | ✅ Works |
+| Map Familiarity and CT/T Side Bias (saved in a sidecar file next to the save) | ✅ Works |
 | Coach Roster Suggestions when a player is in a Performance Slump | Planned |
 | Subregions and Regional Tournaments | Planned |
 | VRS invites based on Valve's published Regional Standings formula | Planned |
