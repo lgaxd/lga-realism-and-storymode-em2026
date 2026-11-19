@@ -43,6 +43,8 @@ public class Plugin : BasePlugin
             Features.Roles.Apply(harmony);
         if (Flags.MapFamiliarity.Value)
             Features.MapFamiliarity.Apply(harmony);
+        if (Flags.RosterSuggestions.Value)
+            Features.RosterSuggestions.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }

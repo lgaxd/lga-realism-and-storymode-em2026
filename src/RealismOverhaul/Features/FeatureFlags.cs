@@ -64,6 +64,24 @@ public class FeatureFlags(ConfigFile config)
         new ConfigDescription("Weight of Side Bias on CT- or T-sided maps (fraction of the game's maximum map mastery points).",
             new AcceptableValueRange<float>(0f, 1f)));
 
+    public ConfigEntry<bool> RosterSuggestions { get; } = config.Bind("Features", "RosterSuggestions", true,
+        "The coach emails up to 3 replacement suggestions (same Role, within budget) when a Main Roster player is in a Performance Slump.");
+
+    public ConfigEntry<float> SlumpThreshold { get; } = config.Bind("Tuning", "SlumpThreshold", 0.10f,
+        new ConfigDescription("How far below his own baseline a player's recent rating must be (0.10 = 10%).", new AcceptableValueRange<float>(0.02f, 0.5f)));
+
+    public ConfigEntry<int> SlumpWindowDays { get; } = config.Bind("Tuning", "SlumpWindowDays", 42,
+        new ConfigDescription("Length of the recent window compared against the baseline.", new AcceptableValueRange<int>(14, 120)));
+
+    public ConfigEntry<int> SlumpMinMaps { get; } = config.Bind("Tuning", "SlumpMinMaps", 12,
+        new ConfigDescription("Minimum maps in both the recent window and the baseline.", new AcceptableValueRange<int>(3, 60)));
+
+    public ConfigEntry<int> SlumpCooldownDays { get; } = config.Bind("Tuning", "SlumpCooldownDays", 60,
+        new ConfigDescription("Days before the same player can trigger another suggestion.", new AcceptableValueRange<int>(7, 365)));
+
+    public ConfigEntry<bool> ForceRosterSuggestionTest { get; } = config.Bind("Diagnostics", "ForceRosterSuggestionTest", false,
+        "Set to true to receive one Roster Suggestion email on the next day change, for your weakest Main Roster player, without waiting for a real Performance Slump. Turns itself off.");
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }
