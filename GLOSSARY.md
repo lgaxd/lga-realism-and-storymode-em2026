@@ -34,6 +34,10 @@ _Avoid_: veteran, exception player
 A player's tactical specialty: Entry, Trader, Support, Lurker, AWPer, or Anchor. A player has a primary Role and may have a secondary one.
 _Avoid_: position, function, class
 
+**Role Balance**:
+How well a lineup's five Roles complement each other: one AWPer, at least one Entry, and a Support or Anchor. A lineup that lacks or doubles key Roles plays slightly worse, and a balanced one slightly better.
+_Avoid_: team chemistry, synergy, composition bonus
+
 **IGL**:
 The in-game leader, a duty held on top of a Role and not a Role itself.
 _Avoid_: captain, shotcaller (as a role)
@@ -59,7 +63,7 @@ Bringing a Retired Player back to play, at a premium cost and with a refusal cha
 _Avoid_: unretirement, buyout from retirement
 
 **Emergency Sub**:
-A coach who used to be a player, filling in as the fifth player only when the team has fewer than five available. Their skills have decayed by the years since they retired.
+A coach who used to be a player, filling in as the fifth player for one match when the team, even after calling up the Academy, has fewer than five available. His skills have decayed with the years since he retired.
 _Avoid_: player-coach, coach sub
 
 **Performance Slump**:

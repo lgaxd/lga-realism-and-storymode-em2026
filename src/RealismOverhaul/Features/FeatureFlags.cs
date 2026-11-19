@@ -43,6 +43,16 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<float> ComebackMaxDecay { get; } = config.Bind("Tuning", "ComebackMaxDecay", 0.20f,
         new ConfigDescription("Maximum total mechanical skill loss on a Comeback.", new AcceptableValueRange<float>(0f, 0.9f)));
 
+    public ConfigEntry<bool> EmergencySub { get; } = config.Bind("Features", "EmergencySub", true,
+        "A coach who used to be a player steps in when your team cannot field five (instead of a forfeit).");
+
+    public ConfigEntry<bool> Roles { get; } = config.Bind("Features", "Roles", true,
+        "Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) shown on profiles, with a Role Balance effect on matches.");
+
+    public ConfigEntry<float> RoleBalanceStrength { get; } = config.Bind("Tuning", "RoleBalanceStrength", 1f,
+        new ConfigDescription("Scales the Role Balance bonus/penalty (0 = off, 1 = default, max -8%/+2% at 1).",
+            new AcceptableValueRange<float>(0f, 2f)));
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

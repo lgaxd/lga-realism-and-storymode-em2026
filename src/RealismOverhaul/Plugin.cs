@@ -35,8 +35,12 @@ public class Plugin : BasePlugin
             Features.Comeback.Apply(harmony);
         if (Flags.RetiredCoach.Value)
             Features.RetiredCoach.Apply(harmony);
+        if (Flags.EmergencySub.Value)
+            Features.EmergencySub.Apply(harmony);
         if (Flags.OverlappingTournaments.Value)
             Features.DoubleMatchday.Apply(harmony);
+        if (Flags.Roles.Value)
+            Features.Roles.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }
