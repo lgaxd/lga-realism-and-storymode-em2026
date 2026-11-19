@@ -28,6 +28,21 @@ public class FeatureFlags(ConfigFile config)
         new ConfigDescription("Percent chance per season that an AI Academy keeps one player who aged out.",
             new AcceptableValueRange<int>(0, 100)));
 
+    public ConfigEntry<bool> Comeback { get; } = config.Bind("Features", "Comeback", true,
+        "Retired players can be signed again within ComebackMaxYears of retiring.");
+
+    public ConfigEntry<bool> RetiredCoach { get; } = config.Bind("Features", "RetiredCoach", true,
+        "Retired players' transfer tab gets a 'Hire as coach' button.");
+
+    public ConfigEntry<int> ComebackMaxYears { get; } = config.Bind("Tuning", "ComebackMaxYears", 5,
+        new ConfigDescription("Years after retiring during which a player can come back.", new AcceptableValueRange<int>(0, 20)));
+
+    public ConfigEntry<float> ComebackDecayPerYear { get; } = config.Bind("Tuning", "ComebackDecayPerYear", 0.05f,
+        new ConfigDescription("Mechanical skill loss per year retired (0.05 = 5%).", new AcceptableValueRange<float>(0f, 0.5f)));
+
+    public ConfigEntry<float> ComebackMaxDecay { get; } = config.Bind("Tuning", "ComebackMaxDecay", 0.20f,
+        new ConfigDescription("Maximum total mechanical skill loss on a Comeback.", new AcceptableValueRange<float>(0f, 0.9f)));
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

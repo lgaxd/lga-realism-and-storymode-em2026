@@ -5,9 +5,11 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Iced.Intel;
 
-if (args.Length < 3) { Console.Error.WriteLine("usage: Disasm <dummyDir> <GameAssembly.dll> <Type::Method> [maxBytes]"); return 1; }
+if (args.Length < 3) { Console.Error.WriteLine("usage: Disasm <dummyDir> <GameAssembly.dll> <Type::Method> [maxBytes | --xref]"); return 1; }
 var dummyDir = args[0]; var gameAsm = args[1]; var target = args[2];
-int maxBytes = args.Length > 3 ? int.Parse(args[3]) : 4096;
+var xrefMode = args.Length > 3 && args[3] == "--xref";
+ulong? fieldOffset = args.Length > 4 && args[3] == "--field" ? Convert.ToUInt64(args[4], 16) : null;
+int maxBytes = args.Length > 3 && !xrefMode && fieldOffset == null ? int.Parse(args[3]) : 4096;
 
 var byRva = new Dictionary<ulong, string>();
 var targets = new List<(string name, ulong rva)>();
@@ -33,12 +35,71 @@ foreach (var file in Directory.GetFiles(dummyDir, "*.dll"))
     }
 }
 Console.WriteLine($"// {byRva.Count} methods indexed");
-if (targets.Count == 0) { Console.Error.WriteLine("target not found"); return 2; }
+if (targets.Count == 0 && fieldOffset == null) { Console.Error.WriteLine("target not found"); return 2; }
 
 var bytes = File.ReadAllBytes(gameAsm);
 using var gpe = new PEReader(new MemoryStream(bytes));
 var imageBase = gpe.PEHeaders.PEHeader!.ImageBase;
 var sorted = byRva.Keys.OrderBy(x => x).ToArray();
+
+if (fieldOffset is ulong fo)
+{
+    // List methods (whose name matches the target substring) that read a byte at [reg+offset].
+    Console.WriteLine($"// methods matching '{target}' reading a byte at +0x{fo:X}");
+    for (var i = 0; i < sorted.Length; i++)
+    {
+        var start = sorted[i];
+        if (!byRva[start].Contains(target)) continue;
+        var end = i + 1 < sorted.Length ? sorted[i + 1] : start + 4096;
+        var len = (int)Math.Min(65536UL, end - start);
+        int off;
+        try { off = RvaToOffset(gpe, (int)start); } catch { continue; }
+        var r = new ByteArrayCodeReader(bytes, off, len);
+        var d = Decoder.Create(64, r, imageBase + start);
+        while (r.CanReadByte)
+        {
+            var ins = d.Decode();
+            if (ins.Mnemonic == Mnemonic.Int3) break;
+            if (ins.MemoryDisplacement64 == fo && ins.MemorySize == MemorySize.UInt8 && !ins.IsIPRelativeMemoryOperand
+                && ins.Mnemonic is Mnemonic.Cmp or Mnemonic.Movzx or Mnemonic.Test or Mnemonic.Mov)
+            {
+                Console.WriteLine($"{start:X8}  {byRva[start]}");
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+if (xrefMode)
+{
+    // List every indexed method whose body calls or jumps to one of the targets.
+    var wanted = targets.Select(t => t.rva).ToHashSet();
+    Console.WriteLine($"// callers of {string.Join(", ", targets.Select(t => t.name))}");
+    for (var i = 0; i < sorted.Length; i++)
+    {
+        var start = sorted[i];
+        var end = i + 1 < sorted.Length ? sorted[i + 1] : start + 4096;
+        var len = (int)Math.Min(65536UL, end - start);
+        int off;
+        try { off = RvaToOffset(gpe, (int)start); } catch { continue; }
+        if (off + len > bytes.Length) continue;
+        var r = new ByteArrayCodeReader(bytes, off, len);
+        var d = Decoder.Create(64, r, imageBase + start);
+        while (r.CanReadByte)
+        {
+            var ins = d.Decode();
+            if (ins.Mnemonic == Mnemonic.Int3) break;
+            if (ins.FlowControl is FlowControl.Call or FlowControl.UnconditionalBranch && ins.Op0Kind is OpKind.NearBranch64
+                && wanted.Contains(ins.NearBranchTarget - imageBase))
+            {
+                Console.WriteLine($"{start:X8}  {byRva[start]}");
+                break;
+            }
+        }
+    }
+    return 0;
+}
 
 foreach (var (name, rva) in targets)
 {

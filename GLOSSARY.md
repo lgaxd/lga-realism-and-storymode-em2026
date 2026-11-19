@@ -51,7 +51,7 @@ How much better or worse a player performs on CT than on T, based on Role and CT
 _Avoid_: CT rating, T rating
 
 **Retired Player**:
-A former professional player who no longer plays. Can be hired as a coach at any time, or brought back to play within 5 years of retiring.
+A former professional player who no longer plays. Can be hired as a coach at any time, or brought back to play within 5 years of retiring, unless he is employed as staff.
 _Avoid_: ex-player, inactive player
 
 **Comeback**:

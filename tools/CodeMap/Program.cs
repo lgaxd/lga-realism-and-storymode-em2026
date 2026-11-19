@@ -25,7 +25,8 @@ foreach (var th in md.TypeDefinitions)
         var fn = md.GetString(f.Name);
         if (fn.StartsWith("NativeFieldInfoPtr_") || fn.StartsWith("NativeMethodInfoPtr_") || fn.StartsWith("<")) continue;
         string st = (f.Attributes & FieldAttributes.Static) != 0 ? "static " : "";
-        w.WriteLine($"  F {st}{f.DecodeSignature(prov, null)} {fn}");
+        var offset = ReadNamedString(md, f.GetCustomAttributes(), "FieldOffsetAttribute", "Offset");
+        w.WriteLine($"  F {st}{f.DecodeSignature(prov, null)} {fn}{(offset != null ? "  @" + offset : "")}");
     }
     foreach (var ph in t.GetProperties())
     {
@@ -46,6 +47,34 @@ foreach (var th in md.TypeDefinitions)
     }
 }
 return 0;
+
+static string? ReadNamedString(MetadataReader md, CustomAttributeHandleCollection attrs, string attrName, string argName)
+{
+    foreach (var ah in attrs)
+    {
+        var a = md.GetCustomAttribute(ah);
+        string an = a.Constructor.Kind switch
+        {
+            HandleKind.MethodDefinition => md.GetString(md.GetTypeDefinition(md.GetMethodDefinition((MethodDefinitionHandle)a.Constructor).GetDeclaringType()).Name),
+            HandleKind.MemberReference => md.GetMemberReference((MemberReferenceHandle)a.Constructor).Parent is var p && p.Kind == HandleKind.TypeReference
+                ? md.GetString(md.GetTypeReference((TypeReferenceHandle)p).Name)
+                : p.Kind == HandleKind.TypeDefinition ? md.GetString(md.GetTypeDefinition((TypeDefinitionHandle)p).Name) : "",
+            _ => ""
+        };
+        if (an != attrName) continue;
+        var br = md.GetBlobReader(a.Value);
+        br.ReadUInt16();
+        var n = br.ReadUInt16();
+        for (var i = 0; i < n; i++)
+        {
+            br.ReadByte(); var et = br.ReadByte();
+            var name = br.ReadSerializedString();
+            var val = et == 0x0E ? br.ReadSerializedString() : null;
+            if (name == argName) return val;
+        }
+    }
+    return null;
+}
 
 static string TypeName(MetadataReader md, TypeDefinitionHandle h)
 {

@@ -31,6 +31,10 @@ public class Plugin : BasePlugin
             Features.TournamentRegistration.Apply(harmony);
         if (Flags.AcademyMatchdays.Value)
             Features.AcademyMatchdays.Apply(harmony);
+        if (Flags.Comeback.Value)
+            Features.Comeback.Apply(harmony);
+        if (Flags.RetiredCoach.Value)
+            Features.RetiredCoach.Apply(harmony);
         if (Flags.OverlappingTournaments.Value)
             Features.DoubleMatchday.Apply(harmony);
 
