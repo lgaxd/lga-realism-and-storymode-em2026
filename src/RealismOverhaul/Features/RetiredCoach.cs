@@ -155,7 +155,17 @@ public static class RetiredCoach
             target ??= g;
         }
         var button = clone.GetComponent<Button>() ?? clone.AddComponent<Button>();
-        button.targetGraphic = target;
+        // Prefer the label as the tinted graphic, so hovering visibly highlights the row.
+        var label = clone.GetComponentInChildren<TMP_Text>(true);
+        button.targetGraphic = label != null ? label : target;
+        button.transition = Selectable.Transition.ColorTint;
+        var colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(0.55f, 1f, 0.55f);   // game's action green
+        colors.pressedColor = new Color(0.35f, 0.8f, 0.35f);
+        colors.selectedColor = Color.white;
+        colors.fadeDuration = 0.08f;
+        button.colors = colors;
         button.onClick = new Button.ButtonClickedEvent();
         button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnClick)));
         Plugin.Log.LogInfo("[RetiredCoach] 'Hire as coach' button created");
