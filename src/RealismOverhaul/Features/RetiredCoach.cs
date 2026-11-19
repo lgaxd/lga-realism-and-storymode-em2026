@@ -130,14 +130,34 @@ public static class RetiredCoach
             if (c != null && c.GetIl2CppType().Name.Contains("Localize"))
                 UnityEngine.Object.Destroy(c);
 
-        var button = clone.GetComponent<Button>() ?? clone.GetComponentInChildren<Button>(true);
-        if (button != null)
+        // The game's action rows handle clicks with their own component, not a Unity Button. Log what
+        // the clone carries, remove anything click-related (it would run the original action), and
+        // give it a standard Button that calls us.
+        var keep = new HashSet<string> { "Transform", "RectTransform", "CanvasRenderer", "Image", "RawImage",
+            "TextMeshProUGUI", "TMP_SubMeshUI", "LayoutElement", "ContentSizeFitter", "HorizontalLayoutGroup",
+            "VerticalLayoutGroup", "CanvasGroup", "Mask", "RectMask2D", "Outline", "Shadow" };
+        foreach (var c in clone.GetComponentsInChildren<Component>(true))
         {
-            button.onClick = new Button.ButtonClickedEvent(); // drops the template's persistent listeners
-            button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnClick)));
+            if (c == null) continue;
+            var typeName = c.GetIl2CppType().Name;
+            Plugin.Log.LogInfo($"[RetiredCoach][components] {c.gameObject.name}: {typeName}");
+            if (!keep.Contains(typeName) && !typeName.Contains("Localize"))
+            {
+                Plugin.Log.LogInfo($"[RetiredCoach][components]   removing {typeName}");
+                UnityEngine.Object.DestroyImmediate(c);
+            }
         }
-        else
-            Plugin.Log.LogWarning("[RetiredCoach] template has no Button component; the clone will not be clickable");
+
+        Graphic? target = null;
+        foreach (var g in clone.GetComponentsInChildren<Graphic>(true))
+        {
+            g.raycastTarget = true;
+            target ??= g;
+        }
+        var button = clone.GetComponent<Button>() ?? clone.AddComponent<Button>();
+        button.targetGraphic = target;
+        button.onClick = new Button.ButtonClickedEvent();
+        button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnClick)));
         Plugin.Log.LogInfo("[RetiredCoach] 'Hire as coach' button created");
         return clone;
     }

@@ -131,7 +131,25 @@ public static class Comeback
     // Transfer tab buttons ("offer contract" to a free agent).
     [HarmonyPatch(typeof(PlayerTransferWindow), nameof(PlayerTransferWindow.Renew))]
     [HarmonyPrefix]
-    static void PlayerTransferRenewPrefix(DataUser user, out DataPlayer? __state) => __state = Unflag(user);
+    static void PlayerTransferRenewPrefix(DataUser user, out DataPlayer? __state)
+    {
+        LogEligibilityOnce(user?.TryCast<DataPlayer>());
+        __state = Unflag(user);
+    }
+
+    static readonly HashSet<string> _eligibilityLogged = new();
+
+    static string D(Il2CppSystem.DateTime d) => d.ToString("yyyy-MM-dd");
+
+    static void LogEligibilityOnce(DataPlayer? p)
+    {
+        if (p == null || !p.Retired || !_eligibilityLogged.Add(p.Id)) return;
+        var staff = StaffRecordOf(p);
+        Plugin.Log.LogInfo($"[Comeback][eligibility] {p.Id}: RetirementLeaveDate={D(p.RetirementLeaveDate)}, " +
+                           $"StartGameDate={D(GlobalValues.StartGameDate)}, CurrentDate={D(GlobalValues.CurrentDate)}, " +
+                           $"yearsRetired={YearsRetired(p):F1}, staff={(staff == null ? "none" : $"{staff.Id} role={staff.Role} team='{staff.TeamId}'")}, " +
+                           $"eligible={IsEligible(p)}");
+    }
 
     [HarmonyPatch(typeof(PlayerTransferWindow), nameof(PlayerTransferWindow.Renew))]
     [HarmonyPostfix]
