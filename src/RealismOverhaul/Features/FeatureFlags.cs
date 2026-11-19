@@ -22,9 +22,9 @@ public class FeatureFlags(ConfigFile config)
         "Academy matches stop the calendar like Main Roster matches (watch or simulate).");
 
     public ConfigEntry<bool> AiOverageRetention { get; } = config.Bind("Features", "AiOverageRetention", true,
-        "AI Academies sometimes keep one player who aged out (always their IGL) instead of selling them.");
+        "AI Academies sometimes keep one player who aged out (preferably their IGL) instead of selling them.");
 
     public ConfigEntry<int> AiOverageRetentionChance { get; } = config.Bind("Tuning", "AiOverageRetentionChance", 15,
-        new ConfigDescription("Percent chance per season that an AI Academy keeps one non-IGL player who aged out.",
+        new ConfigDescription("Percent chance per season that an AI Academy keeps one player who aged out.",
             new AcceptableValueRange<int>(0, 100)));
 }

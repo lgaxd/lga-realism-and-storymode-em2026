@@ -169,8 +169,8 @@ public static class OveragePlayer
     }
 
     // 4. AI Academies. AIAcademyOveragePass promotes or lists for sale every AI Academy player older
-    // than 23 (age limit compiled in). Sometimes keep one instead: always the Academy's IGL if they
-    // aged out, otherwise one roll per Academy per season. At most one per Academy.
+    // than 23 (age limit compiled in). Sometimes keep one instead: one roll per Academy per season;
+    // if it hits, keep the IGL if they aged out, otherwise the first aged-out player.
     [HarmonyPatch(typeof(AiRosterLifecyclePasses), nameof(AiRosterLifecyclePasses.AIAcademyOveragePass))]
     [HarmonyPrefix]
     static void AIAcademyOveragePassPrefix(out bool __state)
@@ -208,6 +208,11 @@ public static class OveragePlayer
 
     static DataPlayer? PickRetainedOverage(DataTeam academy)
     {
+        // One roll per Academy per season decides whether it keeps anyone at all, so the share of
+        // Academies keeping an Overage Player stays near the configured chance.
+        var roll = StableRoll($"{academy.Id}|{GlobalValues.CurrentDate.Year}");
+        if (roll >= Plugin.Flags.AiOverageRetentionChance.Value) return null;
+
         var squad = academy.FullSquad;
         if (squad == null) return null;
         DataPlayer? first = null;
@@ -215,12 +220,10 @@ public static class OveragePlayer
         {
             var p = DataPlayers.Get(squad[i]);
             if (p == null || !IsOverage(p)) continue;
-            if (p.IsIGL) return p; // an aged-out IGL is always kept
+            if (p.IsIGL) return p; // the kept player is preferably the IGL
             first ??= p;
         }
-        // One roll per Academy per season, so the share of Academies keeping one stays near the chance.
-        var roll = StableRoll($"{academy.Id}|{GlobalValues.CurrentDate.Year}");
-        return first != null && roll < Plugin.Flags.AiOverageRetentionChance.Value ? first : null;
+        return first;
     }
 
     /// Deterministic 0-99 roll, so the AI's decision is stable across weekly passes.

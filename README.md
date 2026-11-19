@@ -16,7 +16,7 @@ Not affiliated with or endorsed by the game's developer.
 | Feature | Status |
 |---|---|
 | **Overage Player:** an Academy may hold one player older than 23 (sign, refuse, move down) | ✅ Works |
-| AI Academies sometimes keep one player who aged out (always their IGL) | ✅ Works |
+| AI Academies sometimes keep one player who aged out (preferably their IGL) | ✅ Works |
 | Register for a tournament while playing another, when their dates do not overlap | ✅ Works |
 | Overlapping tournaments (at most 2, never 2 LANs), Double Match Days with fatigue | ✅ Works |
 | Academy matches stop the calendar like Main Roster matches (watch or simulate) | ✅ Works |
