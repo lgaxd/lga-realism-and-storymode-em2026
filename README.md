@@ -25,7 +25,7 @@ Not affiliated with or endorsed by the game's developer.
 | Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) with Role Balance in matches | ✅ Works |
 | CT Positions per map (assigned by Role; manual setup screen planned) | ✅ Works |
 | Map Familiarity and CT/T Side Bias (saved in a sidecar file next to the save) | ✅ Works |
-| Coach Roster Suggestions when a player is in a Performance Slump | Planned |
+| Coach Roster Suggestions when a player is in a Performance Slump | ✅ Works |
 | Subregions and Regional Tournaments | Planned |
 | VRS invites based on Valve's published Regional Standings formula | Planned |
 
