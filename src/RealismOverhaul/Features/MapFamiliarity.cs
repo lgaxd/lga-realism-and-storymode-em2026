@@ -73,18 +73,25 @@ public static class MapFamiliarity
     {
         if (_fam.TryGetValue(p.Id, out var f)) return f;
         f = new float[Maps.Length];
-        var hasTeam = !string.IsNullOrEmpty(p.TeamId) && DataTeams.Get(p.TeamId) != null;
-        float min = MapTrainingEngine.StartMin, max = MapTrainingEngine.StartMax;
+        // Rank the maps within the player's team: its best map starts at 85, its worst at 35. The
+        // game's absolute map strength drifts above its starting range over a career, so ranking
+        // (not normalising) is what keeps real differences between maps.
+        var baselines = Enumerable.Repeat(40f, Maps.Length).ToArray();
+        if (!string.IsNullOrEmpty(p.TeamId) && DataTeams.Get(p.TeamId) != null)
+        {
+            try
+            {
+                var strengths = Maps.Select(m => MapTrainingEngine.GetEffectiveMapStrength(p.TeamId, m)).ToArray();
+                var order = Enumerable.Range(0, Maps.Length).OrderByDescending(i => strengths[i]).ToList();
+                for (var rank = 0; rank < order.Count; rank++)
+                    baselines[order[rank]] = 85f - rank * (50f / Math.Max(1, order.Count - 1));
+            }
+            catch { /* team without map data: keep the neutral baseline */ }
+        }
         for (var i = 0; i < Maps.Length; i++)
         {
-            float baseline = 40f;
-            if (hasTeam && max > min)
-            {
-                try { baseline = Math.Clamp((MapTrainingEngine.GetEffectiveMapStrength(p.TeamId, Maps[i]) - min) / (max - min) * 100f, 0f, 100f); }
-                catch { /* team without map data: keep the neutral baseline */ }
-            }
             var spread = StableRoll($"{p.Id}|{Maps[i]}") / 100f * 20f - 10f; // personal +-10
-            f[i] = Math.Clamp(baseline + spread, 5f, 95f);
+            f[i] = Math.Clamp(baselines[i] + spread, 5f, 95f);
         }
         _fam[p.Id] = f;
         return f;
@@ -103,12 +110,20 @@ public static class MapFamiliarity
     {
         public string Name => "mapFamiliarity";
 
+        const int SectionVersion = 2; // v1 initialised from absolute map strength and saturated at 95
+
         public void Load(JsonNode? data)
         {
             _fam.Clear();
             if (data is not JsonObject obj) return;
+            if ((obj["_v"]?.GetValue<int>() ?? 1) < SectionVersion)
+            {
+                Plugin.Log.LogInfo("[MapFamiliarity] stored familiarity is from an older version; rebuilding it");
+                return;
+            }
             foreach (var (playerId, node) in obj)
             {
+                if (playerId == "_v") continue;
                 if (node is not JsonObject maps) continue;
                 var f = new float[Maps.Length];
                 var complete = true;
@@ -124,7 +139,7 @@ public static class MapFamiliarity
 
         public JsonNode? Save()
         {
-            var obj = new JsonObject();
+            var obj = new JsonObject { ["_v"] = SectionVersion };
             foreach (var (playerId, f) in _fam)
             {
                 var maps = new JsonObject();
@@ -194,7 +209,7 @@ public static class MapFamiliarity
             {
                 var mineFive = mine == team1 ? five1 : five2;
                 Plugin.Log.LogInfo($"[MapFamiliarity] {map}: {team1.Id} fam {fam1:F0}, lean {lean1:+0.00;-0.00} vs {team2.Id} fam {fam2:F0}, lean {lean2:+0.00;-0.00}; " +
-                                   $"map {(sided > 0 ? "CT" : sided < 0 ? "T" : "neutral")}-sided; adjustment {before:F3} -> {__result:F3} (familiarity {famPoints:+0.000;-0.000}, side {sidePoints:+0.000;-0.000})");
+                                   $"map {(sided > 0 ? "CT" : sided < 0 ? "T" : "neutral")}-sided; adjustment {before:F3} -> {__result:F3} (familiarity {famPoints + 0f:+0.000;-0.000;0.000}, side {sidePoints + 0f:+0.000;-0.000;0.000})");
                 Plugin.Log.LogInfo($"[MapFamiliarity] {mine.Id} CT setup on {map}: {string.Join(", ", AssignCtPositions(mineFive, map).Select(x => $"{x.Position}={x.Player.Id}"))}");
             }
         }
