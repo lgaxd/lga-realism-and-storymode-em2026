@@ -81,6 +81,11 @@ public static class Comeback
 
     static readonly HashSet<string> _signed = new();
 
+    /// Retired players the user has sent a contract offer to. The player decides days later, when
+    /// the game processes negotiations, outside any unflag window; the willingness penalty must
+    /// still apply then.
+    static readonly HashSet<string> _pendingOffers = new();
+
     [HarmonyPatch(typeof(PopupCreator), nameof(PopupCreator.ShowOffer))]
     [HarmonyPrefix]
     static void ShowOfferPrefix(DataUser player, out DataPlayer? __state)
@@ -107,7 +112,9 @@ public static class Comeback
     static void CreateContractOfferPrefix(DataUser player, out DataPlayer? __state)
     {
         __state = Unflag(player);
-        if (__state != null) Plugin.Log.LogInfo($"[Comeback] contract offer sent to retired {__state.Id}");
+        if (__state == null) return;
+        _pendingOffers.Add(__state.Id);
+        Plugin.Log.LogInfo($"[Comeback] contract offer sent to retired {__state.Id}");
     }
 
     [HarmonyPatch(typeof(ContractEngine), nameof(ContractEngine.CreateContractOffer))]
@@ -143,25 +150,7 @@ public static class Comeback
     // Transfer tab buttons ("offer contract" to a free agent).
     [HarmonyPatch(typeof(PlayerTransferWindow), nameof(PlayerTransferWindow.Renew))]
     [HarmonyPrefix]
-    static void PlayerTransferRenewPrefix(DataUser user, out DataPlayer? __state)
-    {
-        LogEligibilityOnce(user?.TryCast<DataPlayer>());
-        __state = Unflag(user);
-    }
-
-    static readonly HashSet<string> _eligibilityLogged = new();
-
-    static string D(Il2CppSystem.DateTime d) => d.ToString("yyyy-MM-dd");
-
-    static void LogEligibilityOnce(DataPlayer? p)
-    {
-        if (p == null || !p.Retired || !_eligibilityLogged.Add(p.Id)) return;
-        var staff = StaffRecordOf(p);
-        Plugin.Log.LogInfo($"[Comeback][eligibility] {p.Id}: RetirementLeaveDate={D(p.RetirementLeaveDate)}, " +
-                           $"StartGameDate={D(GlobalValues.StartGameDate)}, CurrentDate={D(GlobalValues.CurrentDate)}, " +
-                           $"yearsRetired={YearsRetired(p):F1}, staff={(staff == null ? "none" : $"{staff.Id} role={staff.Role} team='{staff.TeamId}'")}, " +
-                           $"eligible={IsEligible(p)}");
-    }
+    static void PlayerTransferRenewPrefix(DataUser user, out DataPlayer? __state) => __state = Unflag(user);
 
     [HarmonyPatch(typeof(PlayerTransferWindow), nameof(PlayerTransferWindow.Renew))]
     [HarmonyPostfix]
@@ -170,16 +159,20 @@ public static class Comeback
 
     // --- Willingness: older and longer away means less willing (and a higher wage demand) ---
 
+    static readonly HashSet<string> _loggedWillingness = new();
+
     [HarmonyPatch(typeof(WillingnessCalculator), nameof(WillingnessCalculator.Calculate))]
     [HarmonyPostfix]
     static void WillingnessPostfix(DataPlayer player, ref float __result)
     {
-        if (player == null || !_unflagged.ContainsKey(player.Pointer)) return;
+        if (player == null || !(_unflagged.ContainsKey(player.Pointer) || _pendingOffers.Contains(player.Id))) return;
         var years = YearsRetired(player);
         var penalty = Math.Min(0.6, 0.06 * years + 0.02 * Math.Max(0, player.Age - 28));
         var before = __result;
         __result = (float)(before - Math.Abs(before) * penalty - penalty);
-        Plugin.Log.LogInfo($"[Comeback] willingness of {player.Id}: {before:F2} -> {__result:F2} (age {player.Age}, {years:F1} years away)");
+        // The game recomputes willingness often; log once per player per day.
+        if (_loggedWillingness.Add(player.Id + "|" + GlobalValues.CurrentDate.ToString("yyyyMMdd")))
+            Plugin.Log.LogInfo($"[Comeback] willingness of {player.Id}: {before:F2} -> {__result:F2} (age {player.Age}, {years:F1} years away)");
     }
 
     // --- The Comeback itself: a retired player joins a team ---
@@ -199,6 +192,7 @@ public static class Comeback
     {
         var years = YearsRetired(p);
         _signed.Add(p.Id);
+        _pendingOffers.Remove(p.Id);
         p.Retired = false;
         p.WillRetire = false;
         p.IsEarlyRetirement = false;

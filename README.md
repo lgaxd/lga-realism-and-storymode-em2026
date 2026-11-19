@@ -20,7 +20,8 @@ Not affiliated with or endorsed by the game's developer.
 | Register for a tournament while playing another, when their dates do not overlap | ✅ Works |
 | Overlapping tournaments (at most 2, never 2 LANs), Double Match Days with fatigue | ✅ Works |
 | Academy matches stop the calendar like Main Roster matches (watch or simulate) | ✅ Works |
-| Retired players: hire as coach, Comeback within 5 years, coach as Emergency Sub | Planned |
+| Retired players: 'Hire as coach' button, Comeback within 5 years (skills decay with time away) | ✅ Works |
+| Former-player coach as Emergency Sub | Planned |
 | Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) + IGL + CT Positions per map | Planned |
 | Map Familiarity and CT/T Side Bias | Planned |
 | Coach Roster Suggestions when a player is in a Performance Slump | Planned |

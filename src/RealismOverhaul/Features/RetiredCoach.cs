@@ -81,7 +81,6 @@ public static class RetiredCoach
             }
 
             _shown = player;
-            LogLayoutOnce(__instance);
             var rows = new List<GameObject>();
 
             // Comeback: the game's free-agent row is only a status line, not a button. Replace it
@@ -114,21 +113,6 @@ public static class RetiredCoach
     /// The transfer tab's action buttons, positioned absolutely inside the "Actions" box.
     static GameObject?[] ActionButtons(PlayerTransferWindow w) =>
         new[] { w._buyBtn, w._sellBtn, w._freeBtn, w._negolationsBtn, w._removeBtn, w._endcontractBtn, w._transfernowBtn, w._banteamBtn };
-
-    static bool _loggedLayout;
-
-    static void LogLayoutOnce(PlayerTransferWindow w)
-    {
-        if (_loggedLayout) return;
-        _loggedLayout = true;
-        foreach (var b in ActionButtons(w))
-        {
-            if (b == null) continue;
-            var rt = b.GetComponent<RectTransform>();
-            Plugin.Log.LogInfo($"[RetiredCoach][layout] {b.name}: active={b.activeSelf}, parent={b.transform.parent?.name}, " +
-                               $"pos={rt?.anchoredPosition}, size={rt?.sizeDelta}");
-        }
-    }
 
     const float LineOffset = 14f;
 
@@ -169,9 +153,8 @@ public static class RetiredCoach
             if (c != null && c.GetIl2CppType().Name.Contains("Localize"))
                 UnityEngine.Object.Destroy(c);
 
-        // The game's action rows handle clicks with their own component, not a Unity Button. Log what
-        // the clone carries, remove anything click-related (it would run the original action), and
-        // give it a standard Button that calls us.
+        // The game's action rows are plain status lines (dot + text), not buttons. Remove anything
+        // non-visual from the clone and give it a standard Button that calls us.
         var keep = new HashSet<string> { "Transform", "RectTransform", "CanvasRenderer", "Image", "RawImage",
             "TextMeshProUGUI", "TMP_SubMeshUI", "LayoutElement", "ContentSizeFitter", "HorizontalLayoutGroup",
             "VerticalLayoutGroup", "CanvasGroup", "Mask", "RectMask2D", "Outline", "Shadow" };
@@ -179,12 +162,8 @@ public static class RetiredCoach
         {
             if (c == null) continue;
             var typeName = c.GetIl2CppType().Name;
-            Plugin.Log.LogInfo($"[RetiredCoach][components] {c.gameObject.name}: {typeName}");
             if (!keep.Contains(typeName) && !typeName.Contains("Localize"))
-            {
-                Plugin.Log.LogInfo($"[RetiredCoach][components]   removing {typeName}");
                 UnityEngine.Object.DestroyImmediate(c);
-            }
         }
 
         Graphic? target = null;
