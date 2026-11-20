@@ -43,6 +43,14 @@ public static class MatchPower
     static void Begin(DataMatch? match)
     {
         if (match == null || _activeKey != null || _contributors.Count == 0) return;
+        AddContributions(match);
+        _activeKey = Key(match);
+        // Inside an AI batch the patch is already installed (nested scope): this costs nothing.
+        if (_multipliers.Count > 0) { _power.Begin(); _matchScopeOpen = true; }
+    }
+
+    static void AddContributions(DataMatch match)
+    {
         foreach (var teamId in new[] { match.Team1Id, match.Team2Id })
         {
             var team = string.IsNullOrEmpty(teamId) ? null : DataTeams.Get(teamId);
@@ -57,9 +65,6 @@ public static class MatchPower
                     _multipliers[playerId] = (_multipliers.TryGetValue(playerId, out var f) ? f : 1f) * factor;
             }
         }
-        _activeKey = Key(match);
-        // Inside an AI batch the patch is already installed (nested scope): this costs nothing.
-        if (_multipliers.Count > 0) { _power.Begin(); _matchScopeOpen = true; }
     }
 
     static bool _matchScopeOpen;
@@ -74,16 +79,30 @@ public static class MatchPower
 
     // AI matches are simulated in a batch each day. Installing and removing the CalculatePower patch
     // per match would cost milliseconds each; keep it installed for the whole batch instead.
+    // AI matches are resolved inside ProcessAIMatches itself (MatchOddsCalculator.Resolve inlined in
+    // its loop; ProccesAIMatch is only used for qualifiers). So compute the multipliers for every
+    // match of the batch up front (a player plays one match per batch), and keep the CalculatePower
+    // patch installed for the whole batch instead of installing it per match.
     [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.ProcessAIMatches))]
     [HarmonyPrefix]
-    static void ProcessAIMatchesPrefix() { if (_contributors.Count > 0) { _power.Begin(); _batchOpen = true; } }
+    static void ProcessAIMatchesPrefix(Il2CppSystem.Collections.Generic.List<DataMatch> matches)
+    {
+        if (_contributors.Count == 0) return;
+        End();
+        if (matches != null)
+            for (var i = 0; i < matches.Count; i++)
+                if (matches[i] != null) AddContributions(matches[i]);
+        _power.Begin();
+        _batchOpen = true;
+    }
 
     [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.ProcessAIMatches))]
     [HarmonyPostfix]
     static void ProcessAIMatchesPostfix()
     {
-        End();
         if (_batchOpen) { _power.End(); _batchOpen = false; }
+        _multipliers.Clear();
+        _activeKey = null;
     }
 
     static bool _batchOpen;

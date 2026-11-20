@@ -89,6 +89,29 @@ public static class Regions
 
     static readonly Dictionary<string, Subregion?> _classified = new();
 
+    // Share of lower-tier online events per Subregion, roughly as in the real scene.
+    static readonly (Subregion Sub, int Weight)[] OnlineWeights =
+    {
+        (Subregion.Europe, 45), (Subregion.CIS, 15), (Subregion.SouthAmerica, 14), (Subregion.NorthAmerica, 9),
+        (Subregion.Asia, 9), (Subregion.Oceania, 4), (Subregion.MENA, 4),
+    };
+
+    static Subregion WeightedSubregion(string tournamentId)
+    {
+        unchecked
+        {
+            var h = 2166136261u;
+            foreach (var c in tournamentId) h = (h ^ c) * 16777619u;
+            var roll = (int)(h % 100);
+            foreach (var (sub, weight) in OnlineWeights)
+            {
+                if (roll < weight) return sub;
+                roll -= weight;
+            }
+            return Subregion.Europe;
+        }
+    }
+
     /// The Subregion a tournament is restricted to, or null when it is open to everyone.
     public static Subregion? RestrictionOf(DataTournament t)
     {
@@ -109,6 +132,14 @@ public static class Regions
         {
             result = SubregionOfCountry(t.Country);
             if (result != null) why = $"Online {t.Tier} hosted in {t.Country}";
+            else
+            {
+                // Online events have no host country in the game. Real lower-tier online events are
+                // almost all regional, so give each one a Subregion, stable per tournament, drawn
+                // with the real scene's weights.
+                result = WeightedSubregion(t.Id);
+                why = $"Online {t.Tier} without a host country, assigned";
+            }
         }
         _classified[t.Id] = result;
         Plugin.Log.LogInfo($"[Regions] '{t.Name}' ({t.Tier}, {(t.IsLan ? "LAN" : "Online")}, {t.Country}): " +

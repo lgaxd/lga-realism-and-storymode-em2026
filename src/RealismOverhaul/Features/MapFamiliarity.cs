@@ -267,14 +267,18 @@ public static class MapFamiliarity
 
     // --- Growth and decay ---
 
-    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.EndMatch), typeof(DataMatch), typeof(SeriesResult), typeof(bool))]
-    [HarmonyPostfix]
-    static void EndMatchPostfix(DataMatch match)
+    static readonly HashSet<string> _grownToday = new();
+    static int _grownDay = -1;
+
+    static void GrowFromMatch(DataMatch? match)
     {
         try
         {
             var maps = match?.MapStats;
-            if (maps == null) return;
+            if (maps == null || maps.Count == 0) return;
+            var today = GlobalValues.CurrentDate.DayOfYear;
+            if (today != _grownDay) { _grownToday.Clear(); _grownDay = today; }
+            if (!_grownToday.Add(MatchPower.Key(match!))) return; // once per match
             for (var i = 0; i < maps.Count; i++)
             {
                 var rec = maps[i];
@@ -291,6 +295,19 @@ public static class MapFamiliarity
         {
             Plugin.Log.LogError($"[MapFamiliarity] could not record maps played: {e}");
         }
+    }
+
+    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.EndMatch), typeof(DataMatch), typeof(SeriesResult), typeof(bool))]
+    [HarmonyPostfix]
+    static void EndMatchPostfix(DataMatch match) => GrowFromMatch(match);
+
+    /// AI matches are resolved inside ProcessAIMatches' own loop.
+    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.ProcessAIMatches))]
+    [HarmonyPostfix]
+    static void ProcessAIMatchesPostfix(Il2CppSystem.Collections.Generic.List<DataMatch> matches)
+    {
+        if (matches == null) return;
+        for (var i = 0; i < matches.Count; i++) GrowFromMatch(matches[i]);
     }
 
     /// Weekly: training maps grow, untouched maps fade (only for players who have been seen, i.e.

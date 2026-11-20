@@ -90,6 +90,15 @@ public static class Vrs
     [HarmonyPostfix]
     static void ProccesAIMatchPostfix(DataMatch match) => Record(match);
 
+    /// Most AI matches are resolved inside ProcessAIMatches' own loop.
+    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.ProcessAIMatches))]
+    [HarmonyPostfix]
+    static void ProcessAIMatchesPostfix(Il2CppSystem.Collections.Generic.List<DataMatch> matches)
+    {
+        if (matches == null) return;
+        for (var i = 0; i < matches.Count; i++) Record(matches[i]);
+    }
+
     /// The game builds a tournament's history row (final places) when it ends; record prize money.
     [HarmonyPatch(typeof(DataTournaments.HistoryRow), nameof(DataTournaments.HistoryRow.Of))]
     [HarmonyPostfix]
