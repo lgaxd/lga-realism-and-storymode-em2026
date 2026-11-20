@@ -26,9 +26,24 @@ public static class VrsUi
 
     static TMP_Text? Style(Component root) => root.GetComponentInChildren<TMP_Text>(true);
 
+    // The statistics screen opens through ShowTeams / ShowPlayers / OnWindowSwitched, not Renew.
+    [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.ShowTeams))]
+    [HarmonyPostfix]
+    static void ShowTeamsPostfix(StatisticWindow __instance) => AddButton(__instance);
+
+    [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.ShowPlayers))]
+    [HarmonyPostfix]
+    static void ShowPlayersPostfix(StatisticWindow __instance) => AddButton(__instance);
+
+    [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.OnWindowSwitched))]
+    [HarmonyPostfix]
+    static void OnWindowSwitchedPostfix(StatisticWindow __instance) => AddButton(__instance);
+
     [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.Renew))]
     [HarmonyPostfix]
-    static void RenewPostfix(StatisticWindow __instance)
+    static void RenewPostfix(StatisticWindow __instance) => AddButton(__instance);
+
+    static void AddButton(StatisticWindow __instance)
     {
         try
         {
@@ -36,8 +51,9 @@ public static class VrsUi
             var root = __instance.transform;
             var style = Style(__instance);
             if (style == null || root.Find(ButtonName) != null) return;
-            UiKit.TextButton(root, ButtonName, style, "VRS", 16f, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-20f, -14f), new Vector2(90f, 32f), Toggle);
+            // A third tab next to "Teams | Players" at the window's top-left.
+            UiKit.TextButton(root, ButtonName, style, "<b>VRS</b>", 18f, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f),
+                new Vector2(230f, -14f), new Vector2(80f, 34f), Toggle);
             Plugin.Log.LogInfo("[VrsUi] VRS button added to the statistics screen");
         }
         catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not add the VRS button: {e}"); }
