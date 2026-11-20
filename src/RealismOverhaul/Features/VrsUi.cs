@@ -2,21 +2,32 @@ using HarmonyLib;
 using RealismOverhaul.Infrastructure;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace RealismOverhaul.Features;
 
-/// Statistics screen: a "VRS" button opens the Valve Regional Standings over the screen: each
-/// Region's top 20 (the user's team highlighted, or appended with its rank), and what the standings
-/// mean for the next Major: its slots, how they split between Regions, and whether the user's team
-/// is in. The panel is its own full-size overlay, independent of the screen's internal layout.
+/// Statistics screen: a "VRS" tab switches the game's own teams table (logos, rows, paging,
+/// search, team details all intact) from the game's ERS ranking to the Valve Regional Standings:
+///   - "All": the invite order (Regions interleaved by quota), the order tournaments are filled in;
+///   - "Europe" / "Americas" / "Asia": that Region's standings;
+/// the "# ERS" / "ERS" columns become "# VRS" / "VRS", and a line shows the next Major's
+/// projection (slots, split by Region, and whether the user's team is in). ERS stays the game's
+/// internal rating (match odds, prestige, the AI market); VRS only decides invites.
 public static class VrsUi
 {
     const string ButtonName = "RealismOverhaul.VrsButton";
-    const string PanelName = "RealismOverhaul.VrsPanel";
-    const int TopN = 20;
-    const float RowH = 22f;
+    const string RegionBarName = "RealismOverhaul.VrsRegions";
+    const string MajorLineName = "RealismOverhaul.VrsMajor";
 
+    static bool _vrsMode;
+    static Region? _region; // null = all Regions (invite order)
+    static bool _reordering;
     static StatisticWindow? _window;
+    static readonly Dictionary<TMP_Text, string> _originalHeaders = new();
+
+    // Snapshot of the standings used while rendering rows.
+    static Dictionary<string, int> _rank = new();
+    static Dictionary<string, float> _points = new();
 
     public static void Apply(Harmony harmony)
     {
@@ -24,90 +35,183 @@ public static class VrsUi
         Plugin.Log.LogInfo("[VrsUi] patches applied");
     }
 
-    static TMP_Text? Style(Component root) => root.GetComponentInChildren<TMP_Text>(true);
+    // --- The tab ---
 
-    // The statistics screen opens through ShowTeams / ShowPlayers / OnWindowSwitched, not Renew.
     [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.ShowTeams))]
     [HarmonyPostfix]
     static void ShowTeamsPostfix(StatisticWindow __instance) => AddButton(__instance);
 
     [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.ShowPlayers))]
     [HarmonyPostfix]
-    static void ShowPlayersPostfix(StatisticWindow __instance) => AddButton(__instance);
+    static void ShowPlayersPostfix(StatisticWindow __instance)
+    {
+        AddButton(__instance);
+        if (_vrsMode) SetMode(false); // the VRS view belongs to the teams table
+    }
 
     [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.OnWindowSwitched))]
     [HarmonyPostfix]
     static void OnWindowSwitchedPostfix(StatisticWindow __instance) => AddButton(__instance);
 
-    [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.Renew))]
-    [HarmonyPostfix]
-    static void RenewPostfix(StatisticWindow __instance) => AddButton(__instance);
-
-    static void AddButton(StatisticWindow __instance)
-    {
-        try
-        {
-            _window = __instance;
-            var root = __instance.transform;
-            var style = Style(__instance);
-            if (style == null || FindButton(__instance) != null) return;
-            // A third tab right after "Teams | Players": find the Players tab by its text.
-            var playersTab = FindTab(__instance);
-            if (playersTab == null)
-            {
-                Plugin.Log.LogWarning("[VrsUi] could not find the Players tab; placing the VRS button at the top-left");
-                UiKit.TextButton(root, ButtonName, style, "<b>VRS</b>", 18f, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f),
-                    new Vector2(230f, 40f), new Vector2(80f, 34f), Toggle);
-            }
-            else
-            {
-                var tabRt = playersTab.GetComponent<RectTransform>();
-                var parent = playersTab.parent;
-                var btn = UiKit.TextButton(parent, ButtonName, style, "<b>VRS</b>", 18f, tabRt.anchorMin, tabRt.anchorMax, tabRt.pivot,
-                    tabRt.anchoredPosition + new Vector2(tabRt.rect.width * (1f - tabRt.pivot.x) + 30f + 80f * tabRt.pivot.x, 0f), new Vector2(80f, tabRt.rect.height), Toggle);
-                if (parent.GetComponent<UnityEngine.UI.LayoutGroup>() != null)
-                {
-                    var le = btn.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-                    le.preferredWidth = 80f;
-                    le.preferredHeight = tabRt.rect.height;
-                }
-                btn.transform.SetSiblingIndex(playersTab.GetSiblingIndex() + 1);
-            }
-            Plugin.Log.LogInfo("[VrsUi] VRS button added to the statistics screen");
-        }
-        catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not add the VRS button: {e}"); }
-    }
-
     static readonly string[] PlayersTabTexts = { "Jogadores", "Players", "Jugadores" };
 
-    /// The Players tab (the tab object itself if its text sits inside a button).
     static Transform? FindTab(StatisticWindow w)
     {
         foreach (var t in w.GetComponentsInChildren<TMP_Text>(true))
         {
             if (t == null || !PlayersTabTexts.Contains((t.text ?? "").Trim())) continue;
             var tr = t.transform;
-            return tr.parent != null && tr.parent.GetComponent<UnityEngine.UI.Button>() != null ? tr.parent : tr;
+            return tr.parent != null && tr.parent.GetComponent<Button>() != null ? tr.parent : tr;
         }
         return null;
     }
 
-    static Transform? FindButton(StatisticWindow w)
+    static Transform? FindByName(StatisticWindow w, string name)
     {
         foreach (var t in w.GetComponentsInChildren<Transform>(true))
-            if (t != null && t.name == ButtonName) return t;
+            if (t != null && t.name == name) return t;
         return null;
     }
 
-    static void Toggle()
+    static void AddButton(StatisticWindow w)
     {
+        try
+        {
+            _window = w;
+            if (FindByName(w, ButtonName) != null) return;
+            var tab = FindTab(w);
+            var style = tab?.GetComponentInChildren<TMP_Text>(true) ?? w.GetComponentInChildren<TMP_Text>(true);
+            if (tab == null || style == null) return;
+            var tabRt = tab.GetComponent<RectTransform>();
+            var right = tabRt.anchoredPosition.x + tabRt.rect.width * (1f - tabRt.pivot.x);
+            var btn = UiKit.TextButton(tab.parent, ButtonName, style, "<b>VRS</b>", 18f, tabRt.anchorMin, tabRt.anchorMax, new Vector2(0f, tabRt.pivot.y),
+                new Vector2(right + 30f, tabRt.anchoredPosition.y), new Vector2(80f, tabRt.rect.height), () => SetMode(!_vrsMode));
+            btn.transform.SetSiblingIndex(tab.GetSiblingIndex() + 1);
+
+            // Region filter and the Major line, shown only in VRS mode.
+            var bar = UiKit.Rect(tab.parent, RegionBarName, tabRt.anchorMin, tabRt.anchorMax, new Vector2(0f, tabRt.pivot.y),
+                new Vector2(right + 130f, tabRt.anchoredPosition.y), new Vector2(560f, tabRt.rect.height));
+            var pt = UiKit.IsPortuguese();
+            var options = new (string Label, Region? Region)[]
+            {
+                (pt ? "Todas" : "All", null), (pt ? "Europa" : "Europe", Region.Europe),
+                (pt ? "Américas" : "Americas", Region.Americas), (pt ? "Ásia" : "Asia", Region.Asia),
+            };
+            for (var i = 0; i < options.Length; i++)
+            {
+                var (label, region) = options[i];
+                UiKit.TextButton(bar, $"Region{i}", style, label, 13f, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                    new Vector2(i * 74f, 0f), new Vector2(70f, tabRt.rect.height * 0.8f), () => { _region = region; Rerender(); });
+            }
+            // Two short lines between the Region buttons and the search box.
+            var major = UiKit.Text(bar, MajorLineName, style, "", 12f, Color.white, TextAlignmentOptions.Left,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(305f, 0f), new Vector2(225f, tabRt.rect.height + 6f));
+            major.enableWordWrapping = true;
+            bar.gameObject.SetActive(_vrsMode);
+            Plugin.Log.LogInfo("[VrsUi] VRS tab added to the statistics screen");
+        }
+        catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not add the VRS tab: {e}"); }
+    }
+
+    static void SetMode(bool on)
+    {
+        _vrsMode = on;
         var w = _window;
         if (w == null) return;
-        var existing = w.transform.Find(PanelName);
-        if (existing != null) { UnityEngine.Object.Destroy(existing.gameObject); return; }
-        try { Build(w); }
-        catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not build the standings: {e}"); }
+        FindByName(w, RegionBarName)?.gameObject.SetActive(on);
+        var label = FindByName(w, ButtonName)?.GetComponentInChildren<TMP_Text>();
+        if (label != null) label.color = on ? new Color(1f, 0.8f, 0.3f) : Color.white;
+        SetHeaders(w, on);
+        var count = w._teams?._teamsCount;
+        if (count != null) count.gameObject.SetActive(!on); // room for the Major line
+        Rerender();
     }
+
+    static void Rerender()
+    {
+        var teams = _window?._teams;
+        if (teams == null) return;
+        try
+        {
+            if (_vrsMode) Reorder(teams);
+            else teams.ApplyFilter(); // the game's own filter and sort
+            UpdateMajorLine();
+        }
+        catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not refresh the table: {e}"); }
+    }
+
+    // --- Ordering the game's table by VRS ---
+
+    [HarmonyPatch(typeof(StatisticTeams), nameof(StatisticTeams.ApplyFilter))]
+    [HarmonyPostfix]
+    static void ApplyFilterPostfix(StatisticTeams __instance) { if (_vrsMode && !_reordering) Reorder(__instance); }
+
+    [HarmonyPatch(typeof(StatisticTeams), nameof(StatisticTeams.Sort))]
+    [HarmonyPostfix]
+    static void SortPostfix(StatisticTeams __instance) { if (_vrsMode && !_reordering) Reorder(__instance); }
+
+    static void Reorder(StatisticTeams view)
+    {
+        if (_reordering) return;
+        _reordering = true;
+        try
+        {
+            var s = Vrs.Current();
+            List<DataTeam> ordered;
+            if (_region == null) ordered = s.InviteOrder.ToList();
+            else ordered = s.ByRegion[_region.Value].Select(x => x.Team).ToList();
+
+            _rank = new Dictionary<string, int>();
+            for (var i = 0; i < ordered.Count; i++) _rank[ordered[i].Id] = i + 1;
+            _points = s.ByRegion.Values.SelectMany(x => x).ToDictionary(x => x.Team.Id, x => x.Points);
+
+            // Keep the game's context objects (they carry the stats columns), in VRS order, and
+            // respect the search box.
+            var byId = new Dictionary<string, TeamStatContext>();
+            var all = view._all;
+            for (var i = 0; all != null && i < all.Count; i++)
+                if (all[i]?.Team != null) byId[all[i].Team.Id] = all[i];
+            var visible = new Il2CppSystem.Collections.Generic.List<TeamStatContext>();
+            foreach (var team in ordered)
+                if (byId.TryGetValue(team.Id, out var ctx) && view.MatchesSearch(team)) visible.Add(ctx);
+            view._visible = visible;
+            view.UpdatePagination();
+            view.Refresh();
+        }
+        finally { _reordering = false; }
+    }
+
+    [HarmonyPatch(typeof(StatisticTeamRow), nameof(StatisticTeamRow.Initialize))]
+    [HarmonyPostfix]
+    static void RowPostfix(StatisticTeamRow __instance, DataTeam team)
+    {
+        if (!_vrsMode || team == null) return;
+        if (__instance._ersPos != null && _rank.TryGetValue(team.Id, out var rank)) __instance._ersPos.text = rank.ToString();
+        if (__instance._ers != null && _points.TryGetValue(team.Id, out var pts)) __instance._ers.text = pts.ToString("F0");
+    }
+
+    static void SetHeaders(StatisticWindow w, bool vrs)
+    {
+        var headers = w._teams?._sortHeaders;
+        if (headers == null) return;
+        foreach (var t in headers.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (t == null) continue;
+            if (vrs)
+            {
+                var text = (t.text ?? "").Trim();
+                if (text == "# ERS" || text == "ERS")
+                {
+                    _originalHeaders[t] = t.text!;
+                    t.text = text.Replace("ERS", "VRS");
+                }
+            }
+            else if (_originalHeaders.TryGetValue(t, out var original)) t.text = original;
+        }
+        if (!vrs) _originalHeaders.Clear();
+    }
+
+    // --- The next Major ---
 
     static string RegionLabel(Region r, bool pt) => r switch
     {
@@ -132,83 +236,23 @@ public static class VrsUi
         return best;
     }
 
-    static void Build(StatisticWindow w)
+    static void UpdateMajorLine()
     {
-        var style = Style(w)!;
+        var w = _window;
+        var line = w == null ? null : FindByName(w, MajorLineName)?.GetComponent<TMP_Text>();
+        if (line == null) return;
         var pt = UiKit.IsPortuguese();
-        var s = Vrs.Current();
-        var club = GlobalValues.DataTeam;
-
-        var panel = UiKit.Image(w.transform, PanelName, new Color(0.055f, 0.065f, 0.09f, 1f), Vector2.zero, Vector2.one,
-            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-20f, -60f));
-        panel.raycastTarget = true; // block clicks to the screen underneath
-        var t = panel.transform;
-        t.SetAsLastSibling();
-        // Keep the toggle clickable above the panel.
-        var button = FindButton(w);
-        if (button != null && button.parent == w.transform) button.SetAsLastSibling();
-
-        UiKit.Text(t, "Title", style, "<b>Valve Regional Standings (VRS)</b>", 22f, Color.white, TextAlignmentOptions.Left,
-            new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(24f, -14f), new Vector2(-140f, 30f));
-        var basis = pt
-            ? $"Histórico do mod: {s.HistoryDays} dias · peso VRS {s.VrsWeight:P0}, ERS do jogo {1 - s.VrsWeight:P0} (o VRS assume aos poucos até 6 meses)"
-            : $"Mod history: {s.HistoryDays} days · VRS weight {s.VrsWeight:P0}, game ERS {1 - s.VrsWeight:P0} (VRS takes over gradually up to 6 months)";
-        UiKit.Text(t, "Basis", style, basis, 14f, new Color(1f, 1f, 1f, 0.7f), TextAlignmentOptions.Left,
-            new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(24f, -44f), new Vector2(-48f, 20f));
-
-        // Three Region columns.
-        var regions = Enum.GetValues<Region>();
-        for (var c = 0; c < regions.Length; c++)
-        {
-            var region = regions[c];
-            var x0 = c / 3f;
-            var col = UiKit.Rect(t, $"Col{c}", new Vector2(x0, 1f), new Vector2(x0 + 1f / 3f, 1f), new Vector2(0f, 1f),
-                new Vector2(24f, -78f), new Vector2(-36f, RowH * (TopN + 4)));
-            UiKit.Text(col, "Header", style, $"<b>{RegionLabel(region, pt)}</b>", 18f, new Color(1f, 0.8f, 0.3f), TextAlignmentOptions.Left,
-                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), Vector2.zero, new Vector2(0f, 26f));
-            var list = s.ByRegion[region];
-            var mineIndex = club == null ? -1 : list.FindIndex(x => x.Team.Id == club.Id);
-            var rows = list.Take(TopN).Select((x, i) => (Rank: i + 1, x.Team, x.Points)).ToList();
-            if (mineIndex >= TopN) rows.Add((mineIndex + 1, list[mineIndex].Team, list[mineIndex].Points));
-            for (var i = 0; i < rows.Count; i++)
-            {
-                var (rank, team, points) = rows[i];
-                var y = -30f - (i + (i == TopN ? 0.5f : 0f)) * RowH;
-                var isMine = club != null && team.Id == club.Id;
-                var color = isMine ? new Color(0.35f, 1f, 0.45f) : Color.white;
-                var name = isMine ? $"<b>{team.Name}</b>" : team.Name;
-                UiKit.Text(col, $"Rank{i}", style, $"#{rank}", 14f, new Color(color.r, color.g, color.b, 0.7f), TextAlignmentOptions.Left,
-                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, y), new Vector2(40f, RowH));
-                UiKit.Text(col, $"Team{i}", style, name, 14f, color, TextAlignmentOptions.Left,
-                    new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(42f, y), new Vector2(-110f, RowH));
-                UiKit.Text(col, $"Pts{i}", style, $"{points:F0}", 14f, color, TextAlignmentOptions.Right,
-                    new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-8f, y), new Vector2(60f, RowH));
-            }
-        }
-
-        // The next Major.
         var major = NextMajor();
-        string majorText;
-        if (major == null)
-            majorText = pt ? "<b>Próximo Major:</b> nenhum agendado no momento." : "<b>Next Major:</b> none scheduled right now.";
-        else
-        {
-            var slots = Math.Max(1, major.ParticipantCountTarget);
-            var invited = s.InviteOrder.Take(slots).ToList();
-            var split = string.Join(", ", Enum.GetValues<Region>().Select(r => $"{RegionLabel(r, pt)} {invited.Count(x => Vrs.RegionOf(x) == r)}"));
-            var place = club == null ? -1 : s.InviteOrder.ToList().FindIndex(x => x.Id == club.Id) + 1;
-            string status;
-            if (place <= 0) status = "";
-            else if (place <= slots)
-                status = pt ? $"<color=#5CFF73>{club!.Name}: dentro (vaga {place} de {slots})</color>" : $"<color=#5CFF73>{club!.Name}: in (slot {place} of {slots})</color>";
-            else
-                status = pt ? $"<color=#FF6B5C>{club!.Name}: fora ({place - slots} posições abaixo do corte)</color>" : $"<color=#FF6B5C>{club!.Name}: out ({place - slots} places below the cut)</color>";
-            majorText = pt
-                ? $"<b>Próximo Major:</b> {major.Name} ({major.DateStart.ToString("dd/MM/yyyy")}) · {slots} vagas por VRS, divididas por Região: {split}\n{status}"
-                : $"<b>Next Major:</b> {major.Name} ({major.DateStart.ToString("yyyy-MM-dd")}) · {slots} slots by VRS, split by Region: {split}\n{status}";
-        }
-        UiKit.Text(t, "Major", style, majorText, 15f, Color.white, TextAlignmentOptions.Left,
-            new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 0f), new Vector2(24f, 16f), new Vector2(-48f, 50f))
-            .enableWordWrapping = true;
+        if (major == null) { line.text = pt ? "Nenhum Major agendado" : "No Major scheduled"; return; }
+        var s = Vrs.Current();
+        var slots = Math.Max(1, major.ParticipantCountTarget);
+        var invited = s.InviteOrder.Take(slots).ToList();
+        var split = string.Join(" · ", Enum.GetValues<Region>().Select(r => $"{RegionLabel(r, pt)} {invited.Count(x => Vrs.RegionOf(x) == r)}"));
+        var club = GlobalValues.DataTeam;
+        var place = club == null ? 0 : s.InviteOrder.ToList().FindIndex(x => x.Id == club.Id) + 1;
+        var status = place <= 0 ? "" : place <= slots
+            ? $"<color=#5CFF73>{(pt ? "dentro" : "in")} ({place}/{slots})</color>"
+            : $"<color=#FF6B5C>{(pt ? "fora" : "out")} ({place}/{slots})</color>";
+        line.text = $"<b>{major.Name}</b>: {status}\n{split}";
     }
 }
