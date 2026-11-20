@@ -23,17 +23,17 @@ def clean(text: str | None) -> str:
 def date(text: str | None) -> str | None:
     """'2003-10-12' / '2000-06-??' / 'June 10, 1988' -> 'YYYY[-MM[-DD]]' or None."""
     t = clean(text)
+    months = ["january", "february", "march", "april", "may", "june", "july", "august",
+              "september", "october", "november", "december"]
+    m = re.search(r"([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})", t)
+    if m and m.group(1).lower() in months:
+        return f"{m.group(3)}-{months.index(m.group(1).lower()) + 1:02d}-{int(m.group(2)):02d}"
     m = _DATE.search(t)
     if m:
         y, mo, d = m.groups()
         if mo and mo != "??":
             return f"{y}-{mo}-{d}" if d and d != "??" else f"{y}-{mo}"
         return y
-    months = ["january", "february", "march", "april", "may", "june", "july", "august",
-              "september", "october", "november", "december"]
-    m = re.search(r"([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})", t)
-    if m and m.group(1).lower() in months:
-        return f"{m.group(3)}-{months.index(m.group(1).lower()) + 1:02d}-{int(m.group(2)):02d}"
     return None
 
 
@@ -182,6 +182,24 @@ def parse_team(soup: BeautifulSoup) -> dict:
     }
 
 
+def _history(soup: BeautifulSoup) -> list[dict]:
+    """The infobox History: one team spell per line ('2006-02-08 – 2006-08-??' next to the team)."""
+    out = []
+    box = soup.select_one(".fo-nttax-infobox")
+    for when in (box.select(".th-mono") if box else []):
+        team_div = when.find_next_sibling("div")
+        if team_div is None:
+            continue
+        a = team_div.select_one("a")
+        team = link_title(a)
+        if team is None and a is not None and a.get("title"):  # a team without a page yet
+            team = a["title"].replace(" (page does not exist)", "")
+        parts = re.split(r"\s+[–-]\s+", clean(when.get_text(" ")))
+        out.append({"team": team or clean(team_div.get_text(" ")), "join": date(parts[0]),
+                    "leave": date(parts[1]) if len(parts) > 1 else None})
+    return out
+
+
 def parse_player(soup: BeautifulSoup) -> dict:
     ib = infobox(soup)
     nick = clean(soup.select_one("h1").get_text(" ")) if soup.select_one("h1") else ""
@@ -190,7 +208,7 @@ def parse_player(soup: BeautifulSoup) -> dict:
     return {
         "kind": "player", "id": nick, "name": ib.get("Name"), "romanized": ib.get("Romanized Name"),
         "nationality": ib.get("Nationality"), "born": date(ib.get("Born")), "status": ib.get("Status"),
-        "role": ib.get("Role"), "team": ib.get("Team"), "alternate_ids": ib.get("Alternate IDs"),
+        "role": ib.get("Role") or ib.get("Roles"), "died": date(ib.get("Died")), "history": _history(soup), "team": ib.get("Team"), "alternate_ids": ib.get("Alternate IDs"),
         "active_from": years[0] if years else None, "active_to": years[1] if len(years) > 1 else None,
         "winnings": money(ib.get("Approx. Total Winnings")), "results": results,
     }

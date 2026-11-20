@@ -100,6 +100,12 @@ def main() -> None:
     # never reaches (e.g. tournaments after the archived tier lists stop, in 2019) are still
     # collected once the data-driven queue is exhausted.
     urls = archive.CACHE / "urls.jsonl"
+    # Exact latest-capture timestamps (enumerate_pages.py) make each fetch a single cheap request.
+    known = {}
+    if urls.exists():
+        for line in urls.read_text(encoding="utf-8").splitlines():
+            r = json.loads(line)
+            known[r["title"]] = (r["url"], r["last"])
     if urls.exists() and not state.get("seeded_all"):
         added = 0
         for line in urls.read_text(encoding="utf-8").splitlines():
@@ -118,7 +124,8 @@ def main() -> None:
         while queue and (not args.max or fetched < args.max):
             prio, _, title, expected = heapq.heappop(queue)
             try:
-                p = archive.page(page_url(title))
+                url, stamp = known.get(title, (None, None))
+                p = archive.page(page_url(title), stamp=stamp, captured_url=url)
             except archive.FetchFailed as e:
                 # Never let one page stop the crawl: retry it later, give up after 3 failures.
                 failures = state.setdefault("failures", {})

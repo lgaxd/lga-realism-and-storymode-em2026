@@ -1,8 +1,10 @@
 """Step 1: list every Liquipedia Counter-Strike page the Internet Archive holds.
 
 Pages through the CDX index (collapsed by URL, successful captures only) and writes
-cache/urls.jsonl, one {"url", "title", "last"} per distinct page. Resumable: the CDX resume key
-is saved after every batch, so the script can be stopped and started again.
+cache/urls.jsonl, one {"url", "title", "first", "last"} per distinct page: the timestamps of its
+first and latest successful captures. Fetching a page at its exact "last" timestamp is a single
+cheap request (no capture lookup on the Archive's side). Resumable: the CDX resume key is saved
+after every batch, so the script can be stopped and started again.
 
 Run:  .venv/Scripts/python enumerate_pages.py
 """
@@ -14,7 +16,7 @@ import urllib.parse
 import archive
 
 OUT = archive.CACHE / "urls.jsonl"
-STATE = archive.CACHE / "enumerate.state.json"
+STATE = archive.CACHE / "enumerate2.state.json"  # v2: with the latest capture
 BATCH = 5000
 
 # Subpages and namespaces that are not team / player / tournament pages.
@@ -37,15 +39,17 @@ def main() -> None:
         print(f"already complete: {state['count']} pages in {OUT}")
         return
     seen = set()
-    if OUT.exists():
-        for line in OUT.read_text(encoding="utf-8").splitlines():
+    partial = OUT.with_suffix(".partial")
+    if partial.exists():
+        for line in partial.read_text(encoding="utf-8").splitlines():
             seen.add(json.loads(line)["title"])
 
-    with OUT.open("a", encoding="utf-8") as out:
+    with partial.open("a", encoding="utf-8") as out:
         while True:
             params = {
                 "url": "liquipedia.net/counterstrike/", "matchType": "prefix", "collapse": "urlkey",
-                "filter": "statuscode:200", "fl": "original,timestamp", "limit": BATCH, "showResumeKey": "true",
+                "filter": "statuscode:200", "fl": "original,timestamp,endtimestamp", "lastSkipTimestamp": "true",
+                "limit": BATCH, "showResumeKey": "true",
             }
             if state["resume"]:
                 params["resumeKey"] = state["resume"]
@@ -55,14 +59,15 @@ def main() -> None:
             if len(rows) >= 2 and len(rows[-1]) == 1:
                 resume = rows[-1][0]
                 rows = rows[:-2] if rows[-2] == [] else rows[:-1]
-            for row in rows[1:] if rows and rows[0] == ["original", "timestamp"] else rows:
+            for row in rows[1:] if rows and rows[0][:1] == ["original"] else rows:
                 if len(row) < 2 or not wanted(row[0]):
                     continue
                 title = archive.title_of(row[0])
                 if title in seen:
                     continue
                 seen.add(title)
-                out.write(json.dumps({"url": row[0], "title": title, "last": row[1]}) + "\n")
+                last = row[2] if len(row) > 2 and row[2] and row[2] != "-" else row[1]
+                out.write(json.dumps({"url": row[0], "title": title, "first": row[1], "last": last}) + "\n")
             out.flush()
             state["resume"] = resume
             state["count"] = len(seen)
@@ -71,6 +76,7 @@ def main() -> None:
             print(f"{len(seen)} distinct pages so far", flush=True)
             if resume is None:
                 break
+    partial.replace(OUT)
     print(f"done: {len(seen)} pages in {OUT}")
 
 

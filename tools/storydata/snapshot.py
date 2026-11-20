@@ -250,6 +250,10 @@ class Archive:
                     self.results[team].setdefault(res["tournament"], (when, place_of(res.get("place")), res.get("tier"), res.get("prize")))
         for key, r in self.players.items():
             self._note(key, r.get("id"), r.get("nationality"), r.get("romanized") or r.get("name"))
+            for h in r.get("history", []):  # the infobox team history: dated spells
+                team = self.team_key(h.get("team"))
+                if team:
+                    self.spells[key].append((team, day(h.get("join")), None, day(h.get("leave"))))
             for res in r["results"]:
                 team, when = self.team_key(res.get("team")), day(res.get("date"))
                 if team and when and res.get("tournament"):
@@ -354,6 +358,9 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
     # Rosters at D.
     roster: dict[str, list] = defaultdict(list)
     for player in set(arc.spells) | set(arc.evidence):
+        died = day((arc.players.get(player) or {}).get("died"))
+        if died is not None and died <= at:
+            continue
         hit = arc.team_at(player, at)
         if hit:
             roster[hit[0]].append((player, hit[1]))

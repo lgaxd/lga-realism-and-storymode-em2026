@@ -64,18 +64,27 @@ def _cache_path(kind: str, key: str) -> Path:
     return CACHE / kind / h[:2] / f"{h}.json"
 
 
-def page(original_url: str, *, before: str = "2026") -> dict | None:
+def page(original_url: str, *, before: str = "2026", stamp: str | None = None,
+         captured_url: str | None = None) -> dict | None:
     """The latest archived copy of a Liquipedia page (at or before `before`, a yyyy[mm[dd]] stamp).
 
-    Returns {"url", "captured", "html"} or None if the Archive has no copy. Cached on disk.
+    With `stamp` (and the URL exactly as captured), the copy is fetched directly: one cheap request.
+    Without it the Archive picks the capture nearest to `before`. Returns {"url", "captured",
+    "html"} or None if the Archive has no copy. Cached on disk.
     """
     path = _cache_path("pages", f"{original_url}|{before}")
     if path.exists():
         data = json.loads(path.read_text(encoding="utf-8"))
         return data or None
-    snapshot = f"https://web.archive.org/web/{before}id_/{original_url}"
+    r = None
+    if stamp:
+        try:
+            r = get(f"https://web.archive.org/web/{stamp}id_/{captured_url or original_url}")
+        except requests.HTTPError:
+            r = None
     try:
-        r = get(snapshot)
+        if r is None:
+            r = get(f"https://web.archive.org/web/{before}id_/{original_url}")
     except requests.HTTPError:
         # The capture nearest to `before` can be an archived error (Liquipedia refused the
         # Archive's crawler: 403). Fall back to the latest successful capture.
