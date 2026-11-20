@@ -598,6 +598,13 @@ def main() -> None:
     report = "\n".join(lines)
     (out / "report.txt").write_text(report, encoding="utf-8")
     print(report)
+    if args.install:
+        pack = GAME / "plugins" / "RealismOverhaul" / "story" / args.date
+        pack.mkdir(parents=True, exist_ok=True)
+        for f in out.iterdir():
+            if f.suffix in (".csv", ".json"):
+                (pack / f.name).write_bytes(f.read_bytes())
+        print(f"installed start pack {pack}")
 
 
 if __name__ == "__main__":
