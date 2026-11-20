@@ -87,6 +87,10 @@ public static class VrsUi
             var btn = UiKit.TextButton(tab.parent, ButtonName, style, "<b>VRS</b>", 18f, tabRt.anchorMin, tabRt.anchorMax, new Vector2(0f, tabRt.pivot.y),
                 new Vector2(right + 30f, tabRt.anchoredPosition.y), new Vector2(80f, tabRt.rect.height), () => SetMode(!_vrsMode));
             btn.transform.SetSiblingIndex(tab.GetSiblingIndex() + 1);
+            // The tabs sit in a layout group, which sizes children by their preferred size: without
+            // a LayoutElement the button collapses to zero width.
+            var inLayout = tab.parent.GetComponent<LayoutGroup>() != null;
+            if (inLayout) Preferred(btn.gameObject, 80f, tabRt.rect.height);
 
             // Region filter and the Major line, shown only in VRS mode.
             var bar = UiKit.Rect(tab.parent, RegionBarName, tabRt.anchorMin, tabRt.anchorMax, new Vector2(0f, tabRt.pivot.y),
@@ -107,10 +111,23 @@ public static class VrsUi
             var major = UiKit.Text(bar, MajorLineName, style, "", 12f, Color.white, TextAlignmentOptions.Left,
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(305f, 0f), new Vector2(225f, tabRt.rect.height + 6f));
             major.enableWordWrapping = true;
+            if (inLayout)
+            {
+                Preferred(bar.gameObject, 540f, tabRt.rect.height);
+                bar.SetSiblingIndex(btn.transform.GetSiblingIndex() + 1);
+            }
             bar.gameObject.SetActive(_vrsMode);
             Plugin.Log.LogInfo("[VrsUi] VRS tab added to the statistics screen");
         }
         catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not add the VRS tab: {e}"); }
+    }
+
+    static void Preferred(GameObject go, float width, float height)
+    {
+        var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+        le.preferredWidth = width;
+        le.minWidth = width;
+        le.preferredHeight = height;
     }
 
     static void SetMode(bool on)
