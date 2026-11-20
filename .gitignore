@@ -5,3 +5,7 @@ tools-src/
 build.log
 /codemap/
 /*log*.txt
+/tools/storydata/.venv/
+/tools/storydata/cache/
+/tools/storydata/logos/
+__pycache__/
