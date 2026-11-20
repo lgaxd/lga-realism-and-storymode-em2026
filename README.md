@@ -27,7 +27,7 @@ Not affiliated with or endorsed by the game's developer.
 | Map Familiarity and CT/T Side Bias (Maps panel on the profile; saved in a sidecar file next to the save) | ✅ Works |
 | Coach Roster Suggestions when a player is in a Performance Slump | ✅ Works |
 | Subregions and Regional Tournaments | ✅ Works |
-| VRS invites based on Valve's published Regional Standings formula (Region quotas) | ✅ Works (history builds over 6 months) |
+| VRS invites based on Valve's published Regional Standings formula (Region quotas), viewable as a VRS mode of the statistics table with the next Major's projection | ✅ Works (history builds over 6 months) |
 
 ### Story Mode (planned)
 
