@@ -107,6 +107,9 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> DumpUi { get; } = config.Bind("Diagnostics", "DumpUi", true,
         "Write the layout of the profile, squad and map training screens to BepInEx/RealismOverhaul-ui-dump.txt (once per screen per session).");
 
+    public ConfigEntry<bool> ExportDefaultDatabase { get; } = config.Bind("Diagnostics", "ExportDefaultDatabase", true,
+        "Export the game's default database tables (CSV) to BepInEx/RealismOverhaul-emdb once, for Story Mode. Turns itself off.");
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

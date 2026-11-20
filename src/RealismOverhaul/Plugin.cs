@@ -61,6 +61,9 @@ public class Plugin : BasePlugin
         if (Flags.CtPositionsUi.Value)
             Features.CtPositionsUi.Apply(harmony);
 
+        if (Flags.ExportDefaultDatabase.Value)
+            Infrastructure.EmdbExport.Run();
+
         if (Flags.DumpUi.Value)
             Infrastructure.UiDump.Apply(harmony);
 
