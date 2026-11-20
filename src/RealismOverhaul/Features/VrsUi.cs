@@ -20,7 +20,8 @@ public static class VrsUi
     const string MajorLineName = "RealismOverhaul.VrsMajor";
 
     static bool _vrsMode;
-    static Region? _region; // null = all Regions (invite order)
+    static Region? _region;       // a Region's standings, or null for all teams
+    static bool _inviteOrder;     // "Invites": the interleaved invite order instead of points
     static bool _reordering;
     static StatisticWindow? _window;
     static readonly Dictionary<TMP_Text, string> _originalHeaders = new();
@@ -96,20 +97,21 @@ public static class VrsUi
             var bar = UiKit.Rect(tab.parent, RegionBarName, tabRt.anchorMin, tabRt.anchorMax, new Vector2(0f, tabRt.pivot.y),
                 new Vector2(right + 130f, tabRt.anchoredPosition.y), new Vector2(560f, tabRt.rect.height));
             var pt = UiKit.IsPortuguese();
-            var options = new (string Label, Region? Region)[]
+            var options = new (string Label, Region? Region, bool Invites)[]
             {
-                (pt ? "Todas" : "All", null), (pt ? "Europa" : "Europe", Region.Europe),
-                (pt ? "Américas" : "Americas", Region.Americas), (pt ? "Ásia" : "Asia", Region.Asia),
+                (pt ? "Todas" : "All", null, false), (pt ? "Convites" : "Invites", null, true),
+                (pt ? "Europa" : "Europe", Region.Europe, false), (pt ? "Américas" : "Americas", Region.Americas, false),
+                (pt ? "Ásia" : "Asia", Region.Asia, false),
             };
             for (var i = 0; i < options.Length; i++)
             {
-                var (label, region) = options[i];
+                var (label, region, invites) = options[i];
                 UiKit.TextButton(bar, $"Region{i}", style, label, 13f, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-                    new Vector2(i * 74f, 0f), new Vector2(70f, tabRt.rect.height * 0.8f), () => { _region = region; Rerender(); });
+                    new Vector2(i * 64f, 0f), new Vector2(61f, tabRt.rect.height * 0.8f), () => { _region = region; _inviteOrder = invites; Rerender(); });
             }
             // Two short lines between the Region buttons and the search box.
             var major = UiKit.Text(bar, MajorLineName, style, "", 12f, Color.white, TextAlignmentOptions.Left,
-                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(305f, 0f), new Vector2(225f, tabRt.rect.height + 6f));
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(326f, 0f), new Vector2(210f, tabRt.rect.height + 6f));
             major.enableWordWrapping = true;
             if (inLayout)
             {
@@ -151,7 +153,7 @@ public static class VrsUi
         try
         {
             if (_vrsMode) Reorder(teams);
-            else teams.ApplyFilter(); // the game's own filter and sort
+            else RestoreErsOrder(teams);
             UpdateMajorLine();
         }
         catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not refresh the table: {e}"); }
@@ -175,8 +177,9 @@ public static class VrsUi
         {
             var s = Vrs.Current();
             List<DataTeam> ordered;
-            if (_region == null) ordered = s.InviteOrder.ToList();
-            else ordered = s.ByRegion[_region.Value].Select(x => x.Team).ToList();
+            if (_region != null) ordered = s.ByRegion[_region.Value].Select(x => x.Team).ToList();
+            else if (_inviteOrder) ordered = s.InviteOrder.ToList();
+            else ordered = s.ByRegion.Values.SelectMany(x => x).OrderByDescending(x => x.Points).Select(x => x.Team).ToList();
 
             _rank = new Dictionary<string, int>();
             for (var i = 0; i < ordered.Count; i++) _rank[ordered[i].Id] = i + 1;
@@ -191,6 +194,26 @@ public static class VrsUi
             var visible = new Il2CppSystem.Collections.Generic.List<TeamStatContext>();
             foreach (var team in ordered)
                 if (byId.TryGetValue(team.Id, out var ctx) && view.MatchesSearch(team)) visible.Add(ctx);
+            view._visible = visible;
+            view.UpdatePagination();
+            view.Refresh();
+        }
+        finally { _reordering = false; }
+    }
+
+    /// Back to the game's ranking: ApplyFilter only filters and keeps the current order, so rebuild
+    /// the visible list sorted by ERS; the rows then render the game's own ERS columns again.
+    static void RestoreErsOrder(StatisticTeams view)
+    {
+        _reordering = true;
+        try
+        {
+            var list = new List<TeamStatContext>();
+            var all = view._all;
+            for (var i = 0; all != null && i < all.Count; i++)
+                if (all[i]?.Team != null && view.MatchesSearch(all[i].Team)) list.Add(all[i]);
+            var visible = new Il2CppSystem.Collections.Generic.List<TeamStatContext>();
+            foreach (var ctx in list.OrderByDescending(c => c.Team.ERS)) visible.Add(ctx);
             view._visible = visible;
             view.UpdatePagination();
             view.Refresh();
