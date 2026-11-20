@@ -206,6 +206,7 @@ public static class Regions
                 filtered.Add(team);
                 borrowed++;
             }
+            _originalAvailable = __result.Count;
             Plugin.Log.LogInfo($"[Regions] filling '{t.Name}' ({sub}): {inSub.Count} {sub} teams" +
                                (borrowed > 0 ? $" + {borrowed} from the {RegionOf(sub.Value)} region" : "") +
                                $" of {__result.Count} available (target {target})");
@@ -215,6 +216,27 @@ public static class Regions
         {
             Plugin.Log.LogError($"[Regions] could not filter teams for '{t.Name}': {e}");
         }
+    }
+
+    static int _originalAvailable;
+
+    /// The game picks a tournament's teams by skipping the top `skip` of the ranked list, so a T3
+    /// gets teams ranked below the elite. That skip is sized for the whole world; on a Subregion's
+    /// much shorter list it would skip everyone and leave the tournament empty. Scale it to the
+    /// filtered list, keeping room for the target count.
+    [HarmonyPatch(typeof(TournamentEngine), nameof(TournamentEngine.PickTeamsWithoutOrgDuplicates))]
+    [HarmonyPrefix]
+    static void PickTeamsPrefix(Il2CppSystem.Collections.Generic.List<DataTeam> availableTeams, ref int skip, int targetCount)
+    {
+        var t = _filling;
+        if (t == null || availableTeams == null || RestrictionOf(t) == null || _originalAvailable <= 0) return;
+        var count = availableTeams.Count;
+        if (count >= _originalAvailable) return;
+        var scaled = (int)Math.Round(skip * (double)count / _originalAvailable);
+        scaled = Math.Max(0, Math.Min(scaled, count - targetCount));
+        if (scaled != skip)
+            Plugin.Log.LogInfo($"[Regions] '{t.Name}': skipping the top {scaled} of {count} regional teams (was {skip} of {_originalAvailable} worldwide)");
+        skip = scaled;
     }
 
     /// The user's teams: invited to (and may register for) a Regional Tournament only if they are
