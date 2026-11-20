@@ -185,6 +185,8 @@ public static class Vrs
         // 3. Blend with the game's ERS while the mod's history is shorter than the window.
         var history = _matches.Count == 0 ? 0 : today - _matches.Min(m => m.Day);
         var w = Math.Clamp(history / (float)WindowDays, 0f, 1f);
+        _historyDays = history;
+        _vrsWeight = w;
         var ers = teams.ToDictionary(t => t.Id, t => (float)t.ERS);
         float minE = ers.Values.DefaultIfEmpty(0).Min(), maxE = ers.Values.DefaultIfEmpty(1).Max();
         _points = ids.ToDictionary(id => id, id =>
@@ -226,6 +228,26 @@ public static class Vrs
     }
 
     static float PointsOf(DataTeam t) => _points.TryGetValue(t.Id, out var p) ? p : 400f;
+
+    // --- Read access for the standings screen ---
+
+    public sealed record Standings(
+        IReadOnlyDictionary<Region, List<(DataTeam Team, float Points)>> ByRegion,
+        IReadOnlyList<DataTeam> InviteOrder, int HistoryDays, float VrsWeight);
+
+    static int _historyDays;
+    static float _vrsWeight;
+
+    public static Standings Current()
+    {
+        EnsureComputed();
+        var teams = AllTeams();
+        var byRegion = Enum.GetValues<Region>().ToDictionary(r => r, r => teams.Where(t => RegionOfTeam(t) == r)
+            .OrderByDescending(PointsOf).Select(t => (t, PointsOf(t))).ToList());
+        return new Standings(byRegion, QuotaOrder(teams), _historyDays, _vrsWeight);
+    }
+
+    public static Region RegionOf(DataTeam t) => RegionOfTeam(t);
 
     /// Teams ordered by VRS, the three Regions interleaved by quota (Europe 2 : Americas 1 : Asia 1).
     static List<DataTeam> QuotaOrder(IEnumerable<DataTeam> teams)

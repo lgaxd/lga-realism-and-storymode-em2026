@@ -66,6 +66,10 @@ public static class UiDump
     [HarmonyPostfix]
     static void SquadWindowPostfix(SquadWindow __instance) => Dump("SquadWindow", __instance);
 
+    [HarmonyPatch(typeof(StatisticWindow), nameof(StatisticWindow.Renew))]
+    [HarmonyPostfix]
+    static void StatisticWindowPostfix(StatisticWindow __instance) => Dump("StatisticWindow", __instance);
+
     [HarmonyPatch(typeof(MapTrainingView), nameof(MapTrainingView.Renew))]
     [HarmonyPostfix]
     static void MapTrainingViewPostfix(MapTrainingView __instance) => Dump("MapTrainingView", __instance);

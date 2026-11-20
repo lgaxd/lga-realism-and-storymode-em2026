@@ -51,7 +51,10 @@ public class Plugin : BasePlugin
         if (Flags.RegionalTournaments.Value)
             Features.Regions.Apply(harmony);
         if (Flags.Vrs.Value)
+        {
             Features.Vrs.Apply(harmony);
+            Features.VrsUi.Apply(harmony);
+        }
 
         if (Flags.ProfileUi.Value)
             Features.ProfileUi.Apply(harmony);
