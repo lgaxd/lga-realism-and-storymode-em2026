@@ -25,7 +25,7 @@ public class EraIndicatorBehaviour : MonoBehaviour
     void Update()
     {
         if (Time.unscaledTime < _next) return;
-        _next = Time.unscaledTime + 1f;
+        _next = Time.unscaledTime + 0.25f;
         try { Refresh(); }
         catch (Exception e)
         {
@@ -37,7 +37,9 @@ public class EraIndicatorBehaviour : MonoBehaviour
     void Refresh()
     {
         var home = StoryStart.CareerStart != null ? GameObject.Find("Canvas/MainWindows/Windows/Home") : null;
-        if (home == null)
+        // The dashboard stays built while other screens are open: IsShown says which one is on screen.
+        var window = home != null ? home.GetComponent<Windows>() : null;
+        if (home == null || (window != null && !window.IsShown))
         {
             // Only on the dashboard of a Story Mode career.
             if (_panel != null) _panel.SetActive(false);

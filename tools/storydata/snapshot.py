@@ -402,6 +402,21 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
             members[:] = [m for m in members if m[0] != drop]
             if drop == other[0]:
                 seen_nick[nick] = (player, benched)
+    # Redirected names ("Lucas" for "LUCAS1"): two members with similar nicks who never appear on
+    # the same tournament roster are one player seen under two names (real teammates always do).
+    def similar(a: str, b: str) -> bool:
+        return bool(a and b) and (a.startswith(b) or b.startswith(a)) and abs(len(a) - len(b)) <= 3
+    for team, members in roster.items():
+        for p1, _ in list(members):
+            for p2, _ in list(members):
+                if p1 >= p2 or p1 not in [m[0] for m in members] or p2 not in [m[0] for m in members]:
+                    continue
+                n1 = norm(arc.info.get(p1, {}).get("nick") or p1.removeprefix("id:"))
+                n2 = norm(arc.info.get(p2, {}).get("nick") or p2.removeprefix("id:"))
+                if similar(n1, n2) and not (set(arc.played.get(p1, {})) & set(arc.played.get(p2, {}))):
+                    keep_first = p1 in arc.players or (p2 not in arc.players and len(arc.spells.get(p1, [])) >= len(arc.spells.get(p2, [])))
+                    drop = p2 if keep_first else p1
+                    members[:] = [m for m in members if m[0] != drop]
     teams = {t: ps for t, ps in roster.items() if len(ps) >= 4}
 
     # Strength on the game's scale.

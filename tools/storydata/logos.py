@@ -154,17 +154,22 @@ def fetch(pack: Path) -> None:
         if target.exists():
             kept += 1
             continue
-        image = None
+        image, unsure = None, False
         for src in choose(index.get(norm(r["Name"]), []), at):
             if src.lower().endswith(".svg"):
                 continue
             try:
                 data = archive.binary("https://liquipedia.net" + src)
                 image = square(data) if data else None
+            except archive.FetchFailed:
+                unsure = True  # throttled: try this team again on the next run
+                break
             except Exception:
                 image = None
             if image is not None:
                 break
+        if image is None and unsure:
+            continue
         if image is None:
             image = monogram(r["Name"], r.get("BgColor") or "")
             drawn += 1

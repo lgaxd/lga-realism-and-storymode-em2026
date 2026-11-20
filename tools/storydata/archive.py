@@ -17,7 +17,10 @@ import requests
 
 USER_AGENT = "EM2026-StoryMode-data/0.1 (personal non-commercial game mod; reads Internet Archive copies)"
 CACHE = Path(__file__).parent / "cache"
-MIN_INTERVAL = 4.0  # seconds between requests: faster gets throttled (HTTP 429), which costs more
+MIN_INTERVAL = 1.5   # fastest pace (seconds between requests) the adaptive limiter may reach
+MAX_INTERVAL = 30.0
+_interval = 2.0      # current pace: faster while the Archive answers, slower when it throttles
+_streak = 0
 
 _session = requests.Session()
 _session.headers.update({"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
@@ -26,10 +29,22 @@ _last = 0.0
 
 def _wait() -> None:
     global _last
-    delay = MIN_INTERVAL - (time.monotonic() - _last)
+    delay = _interval - (time.monotonic() - _last)
     if delay > 0:
         time.sleep(delay)
     _last = time.monotonic()
+
+
+def _faster() -> None:
+    global _interval, _streak
+    _streak += 1
+    if _streak >= 40:
+        _interval, _streak = max(MIN_INTERVAL, _interval * 0.9), 0
+
+
+def _slower() -> None:
+    global _interval, _streak
+    _interval, _streak = min(MAX_INTERVAL, _interval * 2), 0
 
 
 class FetchFailed(RuntimeError):
@@ -37,25 +52,43 @@ class FetchFailed(RuntimeError):
 
 
 def get(url: str, *, params: dict | None = None, retries: int = 5) -> requests.Response:
-    """GET with rate limiting; backs off on throttling (429, honouring Retry-After) and server errors."""
+    """GET at an adaptive pace (ADR 0004).
+
+    Throttling (429) and server errors slow the pace down and are retried with backoff. A refused
+    connection means the Archive is blocking this address for a while: we wait it out (60 s,
+    doubling up to 10 min) without counting it against the page, so a block never marks pages
+    as failed.
+    """
     last = "no response"
-    for attempt in range(retries):
+    attempt = 0
+    cooldown = 60
+    while attempt < retries:
         _wait()
         try:
             r = _session.get(url, params=params, timeout=90)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            _slower()
+            print(f"  archive unreachable ({type(e).__name__}); waiting {cooldown}s", flush=True)
+            time.sleep(cooldown)
+            cooldown = min(600, cooldown * 2)
+            continue
         except requests.RequestException as e:
             r, last = None, type(e).__name__
         if r is not None:
             if r.status_code == 200:
+                _faster()
                 return r
             if r.status_code in (403, 404):
                 r.raise_for_status()  # permanent for this URL: no point retrying
             last = f"HTTP {r.status_code}"
+            _slower()
             if r.status_code == 429:
                 wait = int(r.headers.get("Retry-After", "0") or 0)
                 time.sleep(max(60, wait))
+                attempt += 1
                 continue
         time.sleep(min(120, 5 * 2 ** attempt))
+        attempt += 1
     raise FetchFailed(f"{url}: {last} after {retries} attempts")
 
 

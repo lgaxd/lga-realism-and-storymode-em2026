@@ -37,6 +37,20 @@ PRIORITY = {"tournament": 1, "team": 2, "player": 3, None: 4}
 SKIP = re.compile(r"^(Special|File|Template|Category|User|Liquipedia|Help|Talk|Portal|Main Page)[: ]|/(Results|Matches|Statistics|Played Matches)$", re.I)
 
 
+# Pages never worth a request, and pages worth less than the rest (weekly cups, qualifiers).
+JUNK = re.compile(r"(/Broadcasts$|/Coaching$|\.(png|jpe?g|gif|svg)$|^(extensions|resources|skins|Capsules|Packages|Stickers)/|/Statistics$|/Matches$|/Results$)", re.I)
+LOW = re.compile(r"(Qualifier|/Week \d|Weekly|Monthly|/(January|February|March|April|May|June|July|August|September|October|November|December)$|/Open( \d+)?$|/\d+$|Division \d)", re.I)
+
+
+def any_priority(title: str) -> int | None:
+    """Priority of a page known only from the enumeration: teams, players and main events first."""
+    if JUNK.search(title):
+        return None
+    if "/" not in title:
+        return 5
+    return 8 if LOW.search(title) else 6
+
+
 def page_url(title: str) -> str:
     return BASE + urllib.parse.quote(title.replace(" ", "_"), safe="/()'.,-!&")
 
@@ -117,6 +131,20 @@ def main() -> None:
                 added += 1
         state["seeded_all"] = True
         print(f"queued {added} enumerated pages at the lowest priority", flush=True)
+    # Re-rank the pages known only from the enumeration (idempotent, so safe on every start).
+    ranked, dropped = [], 0
+    for prio, n, title, kind in queue:
+        if kind == "any":
+            p = any_priority(title)
+            if p is None:
+                dropped += 1
+                continue
+            base = 10 if prio >= 19 else 0  # pages already retried after a failure stay behind
+            prio = p + base
+        ranked.append((prio, n, title, kind))
+    queue = ranked
+    heapq.heapify(queue)
+    print(f"queue: {len(queue)} pages ({dropped} non-data pages dropped)", flush=True)
     outputs = {k: (RECORDS / f"{k}.jsonl").open("a", encoding="utf-8") for k in ("tournament", "team", "player")}
     fetched = 0
     started = time.time()
@@ -166,7 +194,7 @@ def main() -> None:
                 state["seen"] = list(seen)
                 save_state(state)
                 rate = fetched / max(1, time.time() - started)
-                print(f"{state['done']} pages done, {len(queue)} queued ({rate:.2f}/s)", flush=True)
+                print(f"{state['done']} pages done, {len(queue)} queued ({rate:.2f}/s, pace {archive._interval:.1f}s)", flush=True)
     finally:
         for f in outputs.values():
             f.close()
