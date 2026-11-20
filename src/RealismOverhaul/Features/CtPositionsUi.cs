@@ -120,11 +120,16 @@ public static class CtPositionsUi
                     BuildColumn(column);
                 });
             // One line, smaller: "s1mple" must not wrap in a ~100 px field.
+            // Ellipsis mode hides the whole text when it does not fit vertically, which the
+            // dropdown's padding causes at this row height; overflow keeps it visible.
             if (dd.captionText != null)
             {
                 dd.captionText.enableWordWrapping = false;
-                dd.captionText.overflowMode = TextOverflowModes.Ellipsis;
+                dd.captionText.overflowMode = TextOverflowModes.Overflow;
+                dd.captionText.enableAutoSizing = false;
                 dd.captionText.fontSize = 13f;
+                dd.captionText.verticalAlignment = VerticalAlignmentOptions.Middle;
+                dd.captionText.margin = Vector4.zero;
             }
         }
     }

@@ -239,6 +239,39 @@ public static class Regions
         skip = scaled;
     }
 
+    // --- UI: mark Regional Tournaments in the tournament window ---
+
+    static string SubregionLabel(Subregion s, bool pt) => s switch
+    {
+        Subregion.NorthAmerica => pt ? "América do Norte" : "North America",
+        Subregion.SouthAmerica => pt ? "América do Sul" : "South America",
+        Subregion.Europe => pt ? "Europa" : "Europe",
+        Subregion.Asia => pt ? "Ásia" : "Asia",
+        Subregion.Oceania => pt ? "Oceania" : "Oceania",
+        _ => s.ToString(),
+    };
+
+    [HarmonyPatch(typeof(TournamentOverview), nameof(TournamentOverview.Renew))]
+    [HarmonyPostfix]
+    static void TournamentOverviewRenewPostfix(TournamentOverview __instance)
+    {
+        try
+        {
+            var t = __instance._tournament;
+            var sub = t == null ? null : RestrictionOf(t);
+            if (sub == null) return;
+            var pt = Infrastructure.UiKit.IsPortuguese();
+            var label = SubregionLabel(sub.Value, pt);
+            var lan = __instance._lan;
+            if (lan != null && !(lan.text ?? "").Contains("Regional"))
+                lan.text = $"{lan.text} · Regional: {label}";
+            var place = __instance._place;
+            if (place != null && !t!.IsLan && (string.IsNullOrWhiteSpace(place.text) || place.text.Trim() == "-"))
+                place.text = label;
+        }
+        catch (Exception e) { Plugin.Log.LogError($"[Regions] could not label the tournament window: {e}"); }
+    }
+
     /// The user's teams: invited to (and may register for) a Regional Tournament only if they are
     /// from its Subregion.
     static bool Allowed(DataTournament? t, DataTeam? team)
