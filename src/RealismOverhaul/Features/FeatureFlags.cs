@@ -79,6 +79,19 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<int> SlumpCooldownDays { get; } = config.Bind("Tuning", "SlumpCooldownDays", 60,
         new ConfigDescription("Days before the same player can trigger another suggestion.", new AcceptableValueRange<int>(7, 365)));
 
+    public ConfigEntry<bool> RegionalTournaments { get; } = config.Bind("Features", "RegionalTournaments", true,
+        "Tournaments naming a Subregion, and Online T3/T4 tournaments, are restricted to teams from that Subregion.");
+
+    public ConfigEntry<bool> BackgroundThrottle { get; } = config.Bind("Performance", "BackgroundThrottle", true,
+        "Lower the frame rate while the game is unfocused or minimized, to cut CPU/GPU load and heat.");
+
+    public ConfigEntry<int> BackgroundFps { get; } = config.Bind("Performance", "BackgroundFps", 10,
+        new ConfigDescription("Frame rate while the game is unfocused or minimized.", new AcceptableValueRange<int>(1, 60)));
+
+    public ConfigEntry<int> ForegroundFpsCap { get; } = config.Bind("Performance", "ForegroundFpsCap", 0,
+        new ConfigDescription("Frame rate cap while the game is focused (0 = keep the game's own setting). 60 is plenty for a manager game.",
+            new AcceptableValueRange<int>(0, 360)));
+
     public ConfigEntry<bool> ForceRosterSuggestionTest { get; } = config.Bind("Diagnostics", "ForceRosterSuggestionTest", false,
         "Set to true to receive one Roster Suggestion email on the next day change, for your weakest Main Roster player, without waiting for a real Performance Slump. Turns itself off.");
 

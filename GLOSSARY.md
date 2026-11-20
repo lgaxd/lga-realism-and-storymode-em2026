@@ -93,15 +93,15 @@ Whether a tournament is played in person at a venue or remotely. A team can be a
 _Avoid_: offline, remote
 
 **Region**:
-One of Valve's three competitive regions: Europe, Americas, Asia. Used for VRS.
+One of Valve's three competitive regions: Europe (Europe, CIS, MENA), Americas (North and South America), Asia (Asia, Oceania). Used for VRS.
 _Avoid_: continent, zone
 
 **Subregion**:
-A smaller area inside a Region, such as South America, North America, CIS, Oceania, or MENA. Used for Regional Tournaments.
+One of seven areas inside the Regions: Europe, CIS, North America, South America, Asia, Oceania, MENA. A team's Subregion is the majority nationality of its five starters.
 _Avoid_: country group, area
 
 **Regional Tournament**:
-A tournament open only to teams from one Subregion.
+A tournament open only to teams from one Subregion: one whose name names a Subregion, or an Online T3/T4 tournament (restricted to its host country's Subregion). When a Subregion cannot fill it, teams from the same Region complete the field.
 _Avoid_: local tournament, national league
 
 **VRS**:

@@ -24,6 +24,9 @@ public class Plugin : BasePlugin
         if (Flags.ClassInjectionSelfTest.Value)
             Infrastructure.ClassInjectionSelfTest.Run();
 
+        if (Flags.BackgroundThrottle.Value)
+            Infrastructure.BackgroundThrottle.Start();
+
         var harmony = new Harmony(Guid);
         if (Flags.OveragePlayer.Value)
             Features.OveragePlayer.Apply(harmony);
@@ -45,6 +48,8 @@ public class Plugin : BasePlugin
             Features.MapFamiliarity.Apply(harmony);
         if (Flags.RosterSuggestions.Value)
             Features.RosterSuggestions.Apply(harmony);
+        if (Flags.RegionalTournaments.Value)
+            Features.Regions.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }
