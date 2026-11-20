@@ -105,7 +105,7 @@ def main() -> None:
     if urls.exists():
         for line in urls.read_text(encoding="utf-8").splitlines():
             r = json.loads(line)
-            known[r["title"]] = (r["url"], r["last"])
+            known[r["title"]] = known[r["title"].lower()] = (r["url"], r["last"])
     if urls.exists() and not state.get("seeded_all"):
         added = 0
         for line in urls.read_text(encoding="utf-8").splitlines():
@@ -124,7 +124,9 @@ def main() -> None:
         while queue and (not args.max or fetched < args.max):
             prio, _, title, expected = heapq.heappop(queue)
             try:
-                url, stamp = known.get(title, (None, None))
+                url, stamp = known.get(title) or known.get(title.lower()) or (None, None)
+                if known and stamp is None and expected != "seed":
+                    continue  # the Archive never captured this page: no request at all
                 p = archive.page(page_url(title), stamp=stamp, captured_url=url)
             except archive.FetchFailed as e:
                 # Never let one page stop the crawl: retry it later, give up after 3 failures.

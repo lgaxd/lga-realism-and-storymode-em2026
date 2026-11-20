@@ -13,6 +13,6 @@ Story Mode needs every team, player, roster change and tournament since 2000. Li
 ## Consequences
 
 - The raw archive cache stays local (gitignored); only the derived dataset is committed, under its own CC-BY-SA licence file.
-- Collection is slow (about one request per second; tens of thousands of pages) and must be resumable.
+- Collection is slow (one request every 4 seconds, which keeps clear of the Archive's throttling; about 24,000 pages, so roughly a day) and must be resumable. Each page is fetched at its exact latest capture, and pages the Archive never captured are never requested.
 - Archived pages can be stale or missing: every record carries its source and capture date, and conflicts are resolved by date and confidence.
 - Team logos come from the same archive but never enter the repository; they are installed locally into the game's CustomAssets, and a setting disables them for the publishable version.

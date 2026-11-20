@@ -1,7 +1,7 @@
 """Polite, cached access to Liquipedia pages as kept by the Internet Archive (ADR 0004).
 
 We never contact liquipedia.net. Everything goes through web.archive.org's CDX index and its
-"id_" snapshot mode (the page exactly as captured), at about one request per second, with an
+"id_" snapshot mode (the page exactly as captured), at one request every 4 seconds, with an
 identifying User-Agent, retries with backoff, and an on-disk cache so nothing is fetched twice.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import requests
 
 USER_AGENT = "EM2026-StoryMode-data/0.1 (personal non-commercial game mod; reads Internet Archive copies)"
 CACHE = Path(__file__).parent / "cache"
-MIN_INTERVAL = 1.5  # seconds between requests to the Archive
+MIN_INTERVAL = 4.0  # seconds between requests: faster gets throttled (HTTP 429), which costs more
 
 _session = requests.Session()
 _session.headers.update({"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})

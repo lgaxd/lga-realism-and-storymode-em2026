@@ -211,7 +211,11 @@ class Archive:
             i.setdefault("name", clean_name(name))
 
     def _index(self) -> None:
+        # The Main Circuit is 1.x/1.6 -> CS:GO -> CS2: the parallel CS:Source scene does not count.
+        self.off_circuit = {k for k, t in self.tournaments.items() if "source" in (t.get("game") or "").lower()}
         for tkey, t in self.tournaments.items():
+            if tkey in self.off_circuit:
+                continue
             when = day(t.get("end")) or day(t.get("start"))
             if when is None:
                 continue
@@ -246,7 +250,7 @@ class Archive:
                 self.staff[team].append(s)
             for res in r.get("results", []):
                 when = day(res.get("date"))
-                if when and res.get("tournament"):
+                if when and res.get("tournament") and res["tournament"] not in self.off_circuit:
                     self.results[team].setdefault(res["tournament"], (when, place_of(res.get("place")), res.get("tier"), res.get("prize")))
         for key, r in self.players.items():
             self._note(key, r.get("id"), r.get("nationality"), r.get("romanized") or r.get("name"))
@@ -256,7 +260,7 @@ class Archive:
                     self.spells[key].append((team, day(h.get("join")), None, day(h.get("leave"))))
             for res in r["results"]:
                 team, when = self.team_key(res.get("team")), day(res.get("date"))
-                if team and when and res.get("tournament"):
+                if team and when and res.get("tournament") and res["tournament"] not in self.off_circuit:
                     self.evidence[key].append((when, team))
                     self.played[key].setdefault(res["tournament"], (when, team))
                     self.results[team].setdefault(res["tournament"], (when, place_of(res.get("place")), res.get("tier"), res.get("prize")))
