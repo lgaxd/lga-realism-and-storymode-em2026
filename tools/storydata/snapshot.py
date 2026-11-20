@@ -368,6 +368,21 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         hit = arc.team_at(player, at)
         if hit:
             roster[hit[0]].append((player, hit[1]))
+    # The same player can hide under two keys (a redirect we never fetched: "NBK" / "NBK-"):
+    # teammates whose nicks match ignoring case and punctuation are one player.
+    for team, members in roster.items():
+        seen_nick: dict[str, tuple] = {}
+        for player, benched in list(members):
+            nick = re.sub(r"[^a-z0-9]", "", (arc.info.get(player, {}).get("nick") or player.removeprefix("id:")).lower())
+            other = seen_nick.get(nick)
+            if other is None:
+                seen_nick[nick] = (player, benched)
+                continue
+            # keep the one with a player page (more data)
+            drop = player if (other[0] in arc.players or player not in arc.players) else other[0]
+            members[:] = [m for m in members if m[0] != drop]
+            if drop == other[0]:
+                seen_nick[nick] = (player, benched)
     teams = {t: ps for t, ps in roster.items() if len(ps) >= 4}
 
     # Strength on the game's scale.
@@ -551,6 +566,7 @@ def main() -> None:
     ap.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE)
     ap.add_argument("--out", type=Path)
     ap.add_argument("--calibrate", action="store_true", help="compare skills with the reference database")
+    ap.add_argument("--install", action="store_true", help="also install the world as a Story Mode start pack in the game")
     args = ap.parse_args()
 
     ref, arc = Reference(args.reference), Archive()

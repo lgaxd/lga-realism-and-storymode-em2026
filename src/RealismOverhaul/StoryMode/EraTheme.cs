@@ -28,8 +28,26 @@ public class EraThemeBehaviour : MonoBehaviour
 
     void Start() => EraPainter.Init();
 
+    float _followCheck;
+
     void Update()
     {
+        // A Story Mode career's Era follows the calendar (once the career's date has settled).
+        if (EraPainter.Follow && Time.unscaledTime >= _followCheck)
+        {
+            _followCheck = Time.unscaledTime + 30f;
+            var now = Eras.At(new DateTime(GlobalValues.CurrentDate.Ticks));
+            if (EraPainter.Era == null && now != null)
+            {
+                EraPainter.Era = now;
+                EraPainter.Init();
+            }
+            else if (now != null && EraPainter.Era != null && now.Id != EraPainter.Era.Id && !EraPainter.EraChangeNoted)
+            {
+                EraPainter.EraChangeNoted = true;
+                Plugin.Log.LogInfo($"[EraTheme] the calendar entered {now.Name}: the new look applies after the career is reloaded");
+            }
+        }
         if (!EraPainter.Active || Time.unscaledTime < _nextSweep) return;
         _nextSweep = Time.unscaledTime + 0.5f;
         var sw = Stopwatch.StartNew();
@@ -55,7 +73,9 @@ public class EraThemeBehaviour : MonoBehaviour
 static class EraPainter
 {
     internal static Era? Era;
-    internal static bool Active => Era?.Theme.Palette != null;
+    internal static bool Follow, EraChangeNoted;
+    internal static bool Active => Era?.Theme.Palette != null && _initialised;
+    static bool _initialised;
 
     // Sprites the game uses for panels and backgrounds (recoloured; plain ones get the Era panel).
     static readonly HashSet<string> PlainPanels = new()
@@ -80,7 +100,8 @@ static class EraPainter
 
     internal static void Init()
     {
-        if (!Active) return;
+        if (_initialised || Era?.Theme.Palette == null) return;
+        _initialised = true;
         var t = Era!.Theme;
         _background = t.Colour("background", new Color(0.1f, 0.1f, 0.1f));
         _text = t.Colour("text", Color.white);
@@ -386,14 +407,30 @@ public static class EraTheme
             Plugin.Log.LogWarning($"[EraTheme] unknown era '{eraId}'; known: {string.Join(", ", Eras.All.Select(e => e.Id))}");
             return;
         }
+        EraPainter.Era = era;
+        Host();
+    }
+
+    /// For a Story Mode career: the Era comes from the game's calendar (ForceEra still wins).
+    public static void FollowCalendar()
+    {
+        if (EraPainter.Era != null) return; // a forced Era or one already chosen
+        EraPainter.Follow = true;
+        Host();
+    }
+
+    static GameObject? _host;
+
+    static void Host()
+    {
+        if (_host != null) return;
         try
         {
-            EraPainter.Era = era;
             ClassInjector.RegisterTypeInIl2Cpp<EraThemeBehaviour>();
-            var go = new GameObject("RealismOverhaul.EraTheme");
-            UnityEngine.Object.DontDestroyOnLoad(go);
-            go.hideFlags = HideFlags.HideAndDontSave;
-            go.AddComponent<EraThemeBehaviour>();
+            _host = new GameObject("RealismOverhaul.EraTheme");
+            UnityEngine.Object.DontDestroyOnLoad(_host);
+            _host.hideFlags = HideFlags.HideAndDontSave;
+            _host.AddComponent<EraThemeBehaviour>();
         }
         catch (Exception e) { Plugin.Log.LogError($"[EraTheme] could not start: {e}"); }
     }

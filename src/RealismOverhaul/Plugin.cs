@@ -64,6 +64,9 @@ public class Plugin : BasePlugin
         if (Flags.ExportDefaultDatabase.Value)
             Infrastructure.EmdbExport.Run();
 
+        if (Flags.StoryMode.Value)
+            StoryMode.StoryStart.Apply(harmony);
+
         if (!string.IsNullOrWhiteSpace(Flags.ForceEra.Value))
             StoryMode.EraTheme.Start(Flags.ForceEra.Value.Trim());
 
