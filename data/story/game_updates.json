@@ -1,5 +1,5 @@
 {
-  "about": "Curated Game Updates and Historical Events for Story Mode (GLOSSARY: Game Update, Historical Event, Main Circuit). DRAFT for review. Facts are restated in our own words; 'source' names the archived Liquipedia page (CC-BY-SA 3.0) the fact comes from, or 'verify' when it still needs a source. 'precision' says how exact the date is (day, month, year); 'window' brackets a change we only know happened between two dated events. Bans and deaths are not listed here: events.py generates them from the banned-player lists and player pages (only the headline cases appear below). Map pools only list the maps that exist in the game (map pools option B): Dust, Inferno, Mirage, Nuke, Overpass, Ancient, Train, Anubis, Cache.",
+  "about": "Curated Game Updates and Historical Events for Story Mode (GLOSSARY: Game Update, Historical Event, Main Circuit). DRAFT for review. Facts are restated in our own words; 'source' names the archived Liquipedia page (CC-BY-SA 3.0) the fact comes from, a Wikipedia article (also CC-BY-SA), or the tournament map pools in the archive. 'precision' says how exact the date is (day, month, year); 'window' brackets a change we only know happened between two dated events. Bans and deaths are not listed here: events.py generates them from the banned-player lists and player pages (only the headline cases appear below). Map pools only list the maps that exist in the game (map pools option B): Dust, Inferno, Mirage, Nuke, Overpass, Ancient, Train, Anubis, Cache.",
   "effects_vocabulary": {
     "version": "the Main Circuit moves to this game version",
     "form_shock": "every player's form is briefly disrupted (0..1)",
@@ -16,85 +16,1117 @@
     "major_teams": "number of teams at a Major",
     "invites": "how big events invite teams: strength (Strength Ranking), minors, rmr, vrs"
   },
-  "maps_in_game": ["Dust", "Inferno", "Mirage", "Nuke", "Overpass", "Ancient", "Train", "Anubis", "Cache"],
-  "start_pool": {"2000-01-01": ["Dust", "Inferno", "Nuke", "Train"]},
+  "maps_in_game": [
+    "Dust",
+    "Inferno",
+    "Mirage",
+    "Nuke",
+    "Overpass",
+    "Ancient",
+    "Train",
+    "Anubis",
+    "Cache"
+  ],
+  "start_pool": {
+    "2000-01-01": [
+      "Dust",
+      "Inferno",
+      "Nuke",
+      "Train"
+    ]
+  },
   "entries": [
-    {"date": "2000-11-09", "precision": "day", "type": "version", "title": "Counter-Strike 1.0 leaves beta", "detail": "The retail release ends a year of public betas. Competitive play had already begun on the betas.", "effects": {"version": "CS 1.0"}, "source": "Counter-Strike", "status": "confirmed"},
-    {"date": "2001-06-01", "precision": "year", "type": "balance", "title": "Lag compensation netcode", "detail": "Valve's new netcode makes high-ping play far more even, so online results start to reflect real skill.", "effects": {"weights": {"Reaction": 0.98}}, "source": "Goldsource", "status": "confirmed (year); effect is our estimate"},
-    {"date": "2001-12-05", "precision": "day", "type": "event", "title": "The Major era begins (CPL Winter 2001)", "detail": "Until 2012 the biggest events, the 'majors', are CPL Winter/Summer, ESWC, WCG and later the IEM World Championship. They are not Valve-funded.", "effects": {}, "source": "Counter-Strike Majors", "status": "confirmed"},
-    {"date": "2002-06-01", "precision": "year", "type": "event", "title": "DreamHack becomes twice a year", "detail": "DreamHack Summer (June) joins DreamHack Winter (late November), and both become fixtures of the calendar.", "effects": {}, "source": "DreamHack", "status": "confirmed (year)"},
-    {"date": "2003-01-16", "precision": "day", "type": "version", "title": "Counter-Strike 1.6 beta on Steam", "detail": "1.6 adds the FAMAS, Galil and tactical shield, plus a new Inferno.", "effects": {"map_rework": ["Inferno"]}, "source": "Counter-Strike patches; Inferno", "status": "confirmed"},
-    {"date": "2003-07-12", "precision": "day", "type": "event", "title": "First Electronic Sports World Cup", "detail": "ESWC joins CPL and WCG as a major.", "effects": {}, "source": "Counter-Strike Majors", "status": "confirmed"},
-    {"date": "2003-09-12", "precision": "day", "type": "version", "title": "Steam launches: 1.6 becomes the standard", "detail": "Updates now arrive automatically through Steam. Leagues move from 1.5 to 1.6 over the following months, and teams that adapt faster gain an edge.", "effects": {"version": "CS 1.6", "form_shock": 0.2}, "source": "Counter-Strike 1.6", "status": "confirmed (Steam launch); the leagues' switch date still needs checking"},
-    {"date": "2004-08-11", "precision": "day", "type": "version", "title": "Counter-Strike: Source beta", "detail": "A parallel Source scene forms. The Main Circuit stays on 1.6, but some players leave for Source.", "effects": {"talent_drain": 0.04}, "source": "Counter-Strike: Source", "status": "confirmed (date); drain is our estimate"},
-    {"date": "2005-01-01", "precision": "year", "type": "event", "title": "CPL World Tour: the first $1,000,000 circuit", "detail": "A season-long tour with a million dollars in prizes. Pro CS becomes worth more money for one year.", "effects": {"prize_scale": 1.15, "until": "2005-12-31"}, "source": "WSVG", "status": "confirmed (year)"},
-    {"date": "2006-01-01", "precision": "year", "type": "event", "title": "Intel leaves the CPL; WSVG and IEM are born", "detail": "Intel funds the new World Series of Video Games and turns ESL's European league into the Intel Extreme Masters. KODE5 and the Championship Gaming Invitational also start this year.", "effects": {}, "source": "WSVG; Intel Extreme Masters; KODE5; Championship Gaming Series", "status": "confirmed (year)"},
-    {"date": "2007-06-12", "precision": "day", "type": "event", "title": "Championship Gaming Series draft", "detail": "DirecTV's franchise league drafts players onto city teams with salaries. Some players leave their clans for the CGS.", "effects": {"talent_drain": 0.03}, "source": "Championship Gaming Series", "status": "confirmed (date); drain is our estimate"},
-    {"date": "2007-06-27", "precision": "day", "type": "event", "title": "CGS regular season starts", "detail": "", "effects": {}, "source": "Championship Gaming Series", "status": "confirmed"},
-    {"date": "2008-01-01", "precision": "year", "type": "event", "title": "KODE5 stops paying prizes", "detail": "From 2008 on, KODE5 winners are not paid. By 2012 the debt to teams passes $100,000.", "effects": {"unpaid_prizes": "KODE5"}, "source": "KODE5", "status": "confirmed (year)"},
-    {"date": "2008-03-01", "precision": "month", "type": "event", "title": "CPL shuts down its events", "detail": "The CPL holds no more international events; it is sold to an Abu Dhabi group in August.", "effects": {"organizer_closed": "CPL"}, "source": "verify (sale on 2008-08-25 confirmed by CPL)", "status": "verify"},
-    {"date": "2008-09-15", "precision": "day", "type": "era", "title": "Global financial crisis", "detail": "Sponsors pull back across esports; prize pools and team budgets shrink for two years.", "effects": {"prize_scale": 0.85, "until": "2010-12-31"}, "source": "verify", "status": "verify (our interpretation)"},
-    {"date": "2008-11-17", "precision": "month", "type": "event", "title": "Championship Gaming Series folds", "detail": "Its players are free agents again.", "effects": {"organizer_closed": "CGS"}, "source": "verify", "status": "verify"},
-    {"date": "2009-01-01", "precision": "year", "type": "event", "title": "ESWC changes hands; no ESWC in 2009", "detail": "Games-Solution buys the brand and the 2009 edition is not held. ESWC returns in 2010.", "effects": {}, "source": "Electronic Sports World Cup; Counter-Strike Majors", "status": "confirmed"},
-    {"date": "2009-12-17", "precision": "day", "type": "event", "title": "Natus Vincere founded", "detail": "The Ukrainian organization that dominates 2010 is formed.", "effects": {}, "source": "Natus Vincere", "status": "confirmed"},
-    {"date": "2010-12-31", "precision": "year", "type": "event", "title": "World e-Sports Masters drops Counter-Strike", "detail": "2010 is the last WEM with CS.", "effects": {"organizer_closed": "WEM"}, "source": "WEM", "status": "confirmed"},
-    {"date": "2011-11-01", "precision": "day", "type": "event", "title": "ESL prize payment controversy", "detail": "ESL comes under scrutiny for paying prizes late.", "effects": {}, "source": "ESL Major Series", "status": "confirmed"},
-    {"date": "2012-03-10", "precision": "day", "type": "event", "title": "Last 1.6 major (IEM Season VI)", "detail": "1.6 is winding down; most organizers drop it within the year.", "effects": {}, "source": "Counter-Strike Majors", "status": "confirmed"},
-    {"date": "2012-08-21", "precision": "day", "type": "version", "title": "Counter-Strike: Global Offensive released", "detail": "The Main Circuit moves to CS:GO over the next months. Movement, spray patterns and economy all change, so expect upsets while teams adapt.", "effects": {"version": "CS:GO", "form_shock": 0.6, "map_pool": {"set": ["Dust", "Inferno", "Mirage", "Nuke", "Train"]}}, "source": "Counter-Strike: Global Offensive; pool from DreamHack Winter 2013", "status": "confirmed"},
-    {"date": "2012-11-15", "precision": "day", "type": "event", "title": "DreamHack, MLG and ESL partner", "detail": "The three organizers coordinate their circuits in Europe and North America.", "effects": {}, "source": "DreamHack", "status": "confirmed"},
-    {"date": "2013-06-01", "precision": "year", "type": "event", "title": "ESL Major Series for CS:GO", "detail": "ESL's first premier CS:GO competition, with finals in Cologne.", "effects": {}, "source": "ESL Major Series", "status": "confirmed (year)"},
-    {"date": "2013-08-14", "precision": "day", "type": "event", "title": "Arms Deal update: weapon skins", "detail": "Skins bring money into the game; sponsorship in CS:GO starts to grow.", "effects": {"prize_scale": 1.1}, "source": "verify", "status": "verify"},
-    {"date": "2013-11-28", "precision": "day", "type": "event", "title": "First Valve Major: DreamHack Winter 2013 ($250,000)", "detail": "Valve-funded Majors become the top of the calendar; 16 teams, GSL groups.", "effects": {"major_teams": 16}, "source": "DreamHack Winter 2013; Majors", "status": "confirmed"},
-    {"date": "2013-12-18", "precision": "day", "type": "event", "title": "Overpass (and Cobblestone) added to the game", "detail": "Not yet in the competitive pool.", "effects": {}, "source": "2013-12-18 Patch", "status": "confirmed"},
-    {"date": "2014-02-05", "precision": "day", "type": "map_rework", "title": "Mirage, Inferno and Dust II reworked", "detail": "", "effects": {"map_rework": ["Mirage", "Inferno", "Dust"]}, "source": "2014-02-05 Patch", "status": "confirmed"},
-    {"date": "2014-02-27", "precision": "day", "type": "map_rework", "title": "Inferno rework", "detail": "", "effects": {"map_rework": ["Inferno"]}, "source": "2014-02-27 Patch", "status": "confirmed"},
-    {"date": "2014-03-06", "precision": "day", "type": "map_rework", "title": "Mirage and Overpass rework", "detail": "", "effects": {"map_rework": ["Mirage", "Overpass"]}, "source": "2014-03-06 Patch", "status": "confirmed"},
-    {"date": "2014-07-01", "precision": "day", "type": "map_pool", "title": "Overpass and Cache join the pool; Train leaves", "detail": "Cobblestone also joins, but it is not in the game. The Cologne 2014 pool: Dust II, Inferno, Mirage, Nuke, Overpass, Cache, Cobblestone.", "effects": {"map_pool": {"add": ["Overpass", "Cache"], "remove": ["Train"]}}, "source": "Overpass; ESL One Cologne 2014", "status": "confirmed (Overpass date); Cache/Train fall between DreamHack Winter 2013 and Cologne 2014", "window": {"after": "2013-11-28", "before": "2014-08-14"}},
-    {"date": "2014-09-17", "precision": "day", "type": "balance", "title": "Tec-9 accuracy buff", "detail": "Better accuracy and less recoil make T-side pistol buys stronger.", "effects": {"weights": {"Pistol": 1.05}}, "source": "2014-09-17 Patch", "status": "confirmed"},
-    {"date": "2014-11-20", "precision": "day", "type": "event", "title": "VAC ban wave hits pro players", "detail": "Several professional players are banned for cheating (generated ban events).", "effects": {}, "source": "Banned Players/Valve", "status": "confirmed"},
-    {"date": "2015-01-26", "precision": "day", "type": "event", "title": "iBUYPOWER match-fixing bans", "detail": "Valve bans the players involved in the 2014 match-fixing case from its events.", "effects": {}, "source": "Banned Players/Valve", "status": "confirmed"},
-    {"date": "2015-04-28", "precision": "day", "type": "event", "title": "ESL ESEA Pro League announced ($1,000,000)", "detail": "A season-based league for Europe and North America with a million dollars in prizes over two seasons.", "effects": {"prize_scale": 1.05}, "source": "ESL Pro League", "status": "confirmed"},
-    {"date": "2015-06-01", "precision": "month", "type": "map_pool", "title": "Train returns; Nuke leaves", "detail": "", "effects": {"map_pool": {"add": ["Train"], "remove": ["Nuke"]}, "map_rework": ["Train"]}, "source": "ESL One: Katowice 2015; ESL One Cologne 2015", "status": "confirmed between Katowice and Cologne 2015; exact date to verify", "window": {"after": "2015-03-12", "before": "2015-08-20"}},
-    {"date": "2015-07-01", "precision": "month", "type": "event", "title": "Modern Times Group buys ESL", "detail": "Big media money enters CS:GO; prize pools grow.", "effects": {"prize_scale": 1.1}, "source": "ESL Major Series", "status": "confirmed"},
-    {"date": "2015-09-15", "precision": "day", "type": "balance", "title": "Animation and hitbox overhaul; M4A1-S changed", "detail": "New player animations and hitboxes change how fights feel.", "effects": {"weights": {"Rifle": 0.98}, "form_shock": 0.15}, "source": "2015-09-15 Patch", "status": "confirmed (patch); effect is our estimate"},
-    {"date": "2015-12-01", "precision": "month", "type": "event", "title": "Valve introduces Minor Championships", "detail": "Regional Minors become the qualifying route to the Majors.", "effects": {"invites": "minors"}, "source": "Majors", "status": "confirmed (month)"},
-    {"date": "2016-02-17", "precision": "day", "type": "map_rework", "title": "Operation Wildfire: the new Nuke", "detail": "Nuke is rebuilt from scratch; teams must relearn it.", "effects": {"map_rework": ["Nuke"]}, "source": "Operation Wildfire", "status": "confirmed"},
-    {"date": "2016-03-29", "precision": "day", "type": "event", "title": "Major prize pool rises to $1,000,000 (MLG Columbus)", "detail": "", "effects": {"prize_scale": 1.1}, "source": "MLG/2016/Columbus", "status": "confirmed"},
-    {"date": "2016-04-15", "precision": "month", "type": "map_pool", "title": "Nuke returns; Inferno leaves for rework", "detail": "", "effects": {"map_pool": {"add": ["Nuke"], "remove": ["Inferno"]}}, "source": "MLG/2016/Columbus; ESL/One/2016/Cologne", "status": "confirmed between Columbus and Cologne 2016; exact date to verify", "window": {"after": "2016-03-29", "before": "2016-07-05"}},
-    {"date": "2016-05-24", "precision": "month", "type": "event", "title": "ELEAGUE starts on TBS", "detail": "CS:GO on US cable television.", "effects": {"prize_scale": 1.05}, "source": "ELEAGUE", "status": "confirmed (Summer 2016); day to verify"},
-    {"date": "2016-10-10", "precision": "day", "type": "map_rework", "title": "Inferno overhaul", "detail": "New look and layout changes, including the reopened T-spawn exit.", "effects": {"map_rework": ["Inferno"]}, "source": "Inferno/csgo", "status": "confirmed"},
-    {"date": "2016-12-01", "precision": "month", "type": "event", "title": "PEA player boycott", "detail": "North American team owners' league dispute; players sign an open letter.", "effects": {}, "source": "Open Letter to the Professional eSports Association", "status": "verify"},
-    {"date": "2017-02-15", "precision": "month", "type": "map_pool", "title": "Inferno returns; Dust II leaves for rework", "detail": "", "effects": {"map_pool": {"add": ["Inferno"], "remove": ["Dust"]}}, "source": "ELEAGUE/2017/Major; PGL Major Kraków 2017", "status": "confirmed between Atlanta and Kraków 2017; exact date to verify", "window": {"after": "2017-01-22", "before": "2017-07-16"}},
-    {"date": "2017-05-23", "precision": "day", "type": "balance", "title": "Operation Hydra: UMP nerf", "detail": "", "effects": {"weights": {"Rifle": 1.01}}, "source": "2017-05-23 Patch", "status": "confirmed (patch); effect is our estimate"},
-    {"date": "2017-07-16", "precision": "day", "type": "event", "title": "Majors switch to a Swiss group stage", "detail": "", "effects": {}, "source": "Majors", "status": "confirmed (2017)"},
-    {"date": "2017-10-10", "precision": "month", "type": "map_rework", "title": "Dust II reskinned", "detail": "Dust II's first big change in CS:GO.", "effects": {"map_rework": ["Dust"]}, "source": "Dust II/csgo", "status": "confirmed (October 2017)"},
-    {"date": "2018-01-12", "precision": "day", "type": "event", "title": "Majors grow to 24 teams (ELEAGUE Boston)", "detail": "An offline qualifier becomes part of the Major.", "effects": {"major_teams": 24}, "source": "Majors", "status": "confirmed"},
-    {"date": "2018-04-20", "precision": "day", "type": "map_pool", "title": "Dust II returns; Cobblestone leaves", "detail": "", "effects": {"map_pool": {"add": ["Dust"]}}, "source": "2018-04-20 Patch", "status": "confirmed"},
-    {"date": "2018-06-12", "precision": "day", "type": "balance", "title": "CZ75-Auto nerf; M4A1-S reserve up; MP7 cheaper", "detail": "The CZ75 no longer one-shots a helmeted opponent.", "effects": {"weights": {"Pistol": 0.98}}, "source": "2018-06-12 Patch", "status": "confirmed"},
-    {"date": "2018-12-06", "precision": "day", "type": "event", "title": "CS:GO goes free to play", "detail": "The player base grows; more talent appears in the lower tiers.", "effects": {"youth_talent": 1.1}, "source": "2018-12-06 Patch", "status": "confirmed"},
-    {"date": "2019-03-13", "precision": "day", "type": "balance", "title": "Round-loss bonus rework", "detail": "Loss bonuses step down one level per win instead of resetting, which weakens economic snowballs. AUG and M4A1-S are also tweaked.", "effects": {"comeback": 1.1}, "source": "2019-03-13 Patch", "status": "confirmed"},
-    {"date": "2019-03-29", "precision": "month", "type": "map_pool", "title": "Cache leaves the pool (Vertigo joins)", "detail": "Vertigo is not in the game.", "effects": {"map_pool": {"remove": ["Cache"]}}, "source": "Cache/csgo; StarLadder/2019/Major", "status": "confirmed (March 2019)"},
-    {"date": "2019-06-18", "precision": "day", "type": "balance", "title": "AUG nerf", "detail": "", "effects": {"weights": {"Rifle": 0.99}}, "source": "2019-06-18 Patch", "status": "confirmed (patch); effect is our estimate"},
-    {"date": "2020-03-13", "precision": "month", "type": "era", "title": "COVID-19: LAN events move online", "detail": "Tournaments are played online by region and the 2020 Major is cancelled. LANs return in 2021.", "effects": {"online_only": true, "until": "2021-08-01"}, "source": "Majors (online period); dates to verify", "status": "verify dates"},
-    {"date": "2020-03-28", "precision": "day", "type": "event", "title": "Flashpoint: a team-owned league", "detail": "Teams form their own league with FACEIT, with over $2 million in prizes for 2020.", "effects": {}, "source": "Flashpoint", "status": "confirmed"},
-    {"date": "2020-06-01", "precision": "year", "type": "event", "title": "Regional Major Rankings replace the Minors", "detail": "During the online period, Major spots come from points earned at regional RMR events.", "effects": {"invites": "rmr"}, "source": "Regional Major Rankings", "status": "confirmed (2020)"},
-    {"date": "2020-12-03", "precision": "day", "type": "event", "title": "Operation Broken Fang: Ancient released", "detail": "Not yet in the competitive pool.", "effects": {}, "source": "Ancient/csgo", "status": "confirmed"},
-    {"date": "2021-01-27", "precision": "day", "type": "event", "title": "Coach spectator bug bans", "detail": "Coaches who abused the spectator bug are banned (generated ban events).", "effects": {}, "source": "Banned Players/Valve", "status": "confirmed"},
-    {"date": "2021-05-03", "precision": "day", "type": "map_pool", "title": "Ancient joins; Train leaves", "detail": "", "effects": {"map_pool": {"add": ["Ancient"], "remove": ["Train"]}}, "source": "2021-05-03 Patch", "status": "confirmed"},
-    {"date": "2021-10-26", "precision": "day", "type": "event", "title": "First Major since 2019 (Stockholm, $2,000,000)", "detail": "Majors return on LAN with a doubled prize pool.", "effects": {}, "source": "PGL Major Stockholm 2021", "status": "confirmed"},
-    {"date": "2022-01-01", "precision": "year", "type": "event", "title": "RMR becomes single events per region", "detail": "Europe, Americas and Asia-Pacific each hold one RMR event for their Major spots.", "effects": {"invites": "rmr"}, "source": "Majors", "status": "confirmed (2022)"},
-    {"date": "2022-06-15", "precision": "day", "type": "balance", "title": "M4A1-S magazine cut to 20", "detail": "", "effects": {"weights": {"Rifle": 0.99}}, "source": "2022-06-15 Patch", "status": "confirmed"},
-    {"date": "2022-11-18", "precision": "day", "type": "map_pool", "title": "Anubis joins; Dust II leaves. AWP magazine cut to 5", "detail": "The AWP magazine drops from 10 to 5 rounds and the M4A1-S loses range.", "effects": {"map_pool": {"add": ["Anubis"], "remove": ["Dust"]}, "weights": {"AWP": 0.95, "Rifle": 0.99}}, "source": "2022-11-18 Patch", "status": "confirmed"},
-    {"date": "2023-03-22", "precision": "day", "type": "event", "title": "Counter-Strike 2 announced (Limited Test)", "detail": "", "effects": {}, "source": "Counter-Strike 2", "status": "confirmed"},
-    {"date": "2023-06-01", "precision": "year", "type": "event", "title": "Valve announces its Regional Standings (VRS)", "detail": "Valve's own team ranking will seed the RMRs and Majors.", "effects": {}, "source": "Valve Regional Standings", "status": "confirmed (2023)"},
-    {"date": "2023-09-27", "precision": "day", "type": "version", "title": "Counter-Strike 2 replaces CS:GO", "detail": "Sub-tick servers and volumetric smokes change utility play: grenades and coordination matter more. Every map is rebuilt in Source 2.", "effects": {"version": "CS2", "form_shock": 0.5, "weights": {"Grenades": 1.06, "Teamwork": 1.03}, "map_rework": ["Dust", "Inferno", "Mirage", "Nuke", "Overpass", "Ancient", "Anubis"]}, "source": "Counter-Strike 2", "status": "confirmed (release); effect is our estimate"},
-    {"date": "2024-02-07", "precision": "day", "type": "balance", "title": "CS2 smoke changes", "detail": "", "effects": {"weights": {"Grenades": 1.01}}, "source": "2024-02-07 Patch", "status": "confirmed (patch); effect is our estimate"},
-    {"date": "2024-03-17", "precision": "day", "type": "event", "title": "VRS seeds the Major (PGL Copenhagen 2024)", "detail": "", "effects": {}, "source": "Valve Regional Standings", "status": "confirmed"},
-    {"date": "2024-04-26", "precision": "day", "type": "map_pool", "title": "Dust II returns; Overpass leaves", "detail": "", "effects": {"map_pool": {"add": ["Dust"], "remove": ["Overpass"]}}, "source": "Overpass; Perfect World/Major/2024/Shanghai", "status": "confirmed (Overpass date; Dust II in the Shanghai pool)"},
-    {"date": "2024-11-13", "precision": "day", "type": "map_pool", "title": "Train returns (CS2 version); Vertigo leaves", "detail": "The new Train enters the competitive map groups; Majors use it from 2025. The same update adds damage prediction.", "effects": {"map_pool": {"add": ["Train"]}, "map_rework": ["Train"]}, "source": "2024-11-13 Patch; BLAST/Major/2025/Austin", "status": "confirmed (patch; Austin 2025 pool)"},
-    {"date": "2025-01-01", "precision": "month", "type": "era", "title": "Open circuit: VRS decides invitations", "detail": "No more partner leagues: invitations to the big events come from the Valve Regional Standings (the mod's VRS feature switches on).", "effects": {"invites": "vrs"}, "source": "verify", "status": "verify"},
-    {"date": "2025-06-03", "precision": "day", "type": "event", "title": "32-team Majors; RMRs replaced by Major Regional Qualifiers", "detail": "The top 16 teams by the last Major and VRS are invited directly.", "effects": {"major_teams": 32}, "source": "Valve Regional Standings; Regional Major Rankings", "status": "confirmed"},
-    {"date": "2025-06-09", "precision": "day", "type": "event", "title": "All Major slots filled by VRS invites", "detail": "Major Regional Qualifiers are removed; every slot comes from VRS by region.", "effects": {"invites": "vrs"}, "source": "Valve Regional Standings", "status": "confirmed"},
-    {"date": "2025-09-01", "precision": "month", "type": "map_pool", "title": "Overpass returns; Train leaves", "detail": "", "effects": {"map_pool": {"add": ["Overpass"], "remove": ["Train"]}}, "source": "BLAST/Major/2025/Austin; Intel Extreme Masters/2026/Cologne", "status": "confirmed between Austin 2025 and Cologne 2026; exact date to verify", "window": {"after": "2025-06-03", "before": "2026-06-02"}}
+    {
+      "date": "2000-11-09",
+      "precision": "day",
+      "type": "version",
+      "title": "Counter-Strike 1.0 leaves beta",
+      "detail": "The retail release ends a year of public betas. Competitive play had already begun on the betas.",
+      "effects": {
+        "version": "CS 1.0"
+      },
+      "source": "Counter-Strike",
+      "status": "confirmed"
+    },
+    {
+      "date": "2001-06-01",
+      "precision": "year",
+      "type": "balance",
+      "title": "Lag compensation netcode",
+      "detail": "Valve's new netcode makes high-ping play far more even, so online results start to reflect real skill.",
+      "effects": {
+        "weights": {
+          "Reaction": 0.98
+        }
+      },
+      "source": "Goldsource",
+      "status": "confirmed (year); effect is our estimate"
+    },
+    {
+      "date": "2001-12-05",
+      "precision": "day",
+      "type": "event",
+      "title": "The Major era begins (CPL Winter 2001)",
+      "detail": "Until 2012 the biggest events, the 'majors', are CPL Winter/Summer, ESWC, WCG and later the IEM World Championship. They are not Valve-funded.",
+      "effects": {},
+      "source": "Counter-Strike Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2002-06-01",
+      "precision": "year",
+      "type": "event",
+      "title": "DreamHack becomes twice a year",
+      "detail": "DreamHack Summer (June) joins DreamHack Winter (late November), and both become fixtures of the calendar.",
+      "effects": {},
+      "source": "DreamHack",
+      "status": "confirmed (year)"
+    },
+    {
+      "date": "2003-01-16",
+      "precision": "day",
+      "type": "version",
+      "title": "Counter-Strike 1.6 beta on Steam",
+      "detail": "1.6 adds the FAMAS, Galil and tactical shield, plus a new Inferno.",
+      "effects": {
+        "map_rework": [
+          "Inferno"
+        ]
+      },
+      "source": "Counter-Strike patches; Inferno",
+      "status": "confirmed"
+    },
+    {
+      "date": "2003-07-12",
+      "precision": "day",
+      "type": "event",
+      "title": "First Electronic Sports World Cup",
+      "detail": "ESWC joins CPL and WCG as a major.",
+      "effects": {},
+      "source": "Counter-Strike Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2003-09-12",
+      "precision": "day",
+      "type": "version",
+      "title": "Steam launches: 1.6 becomes the standard",
+      "detail": "The final 1.6 ships with the Steam client after a beta that ended on September 9. Updates now arrive automatically, and the scene settles on 1.6.",
+      "effects": {
+        "version": "CS 1.6",
+        "form_shock": 0.2
+      },
+      "source": "Counter-Strike 1.6; Wikipedia: Counter-Strike (video game)",
+      "status": "confirmed"
+    },
+    {
+      "date": "2004-08-11",
+      "precision": "day",
+      "type": "version",
+      "title": "Counter-Strike: Source beta",
+      "detail": "A parallel Source scene forms. The Main Circuit stays on 1.6, but some players leave for Source.",
+      "effects": {
+        "talent_drain": 0.04
+      },
+      "source": "Counter-Strike: Source",
+      "status": "confirmed (date); drain is our estimate"
+    },
+    {
+      "date": "2005-01-01",
+      "precision": "year",
+      "type": "event",
+      "title": "CPL World Tour: the first $1,000,000 circuit",
+      "detail": "A season-long tour with a million dollars in prizes. Pro CS becomes worth more money for one year.",
+      "effects": {
+        "prize_scale": 1.15,
+        "until": "2005-12-31"
+      },
+      "source": "WSVG",
+      "status": "confirmed (year)"
+    },
+    {
+      "date": "2006-01-01",
+      "precision": "year",
+      "type": "event",
+      "title": "Intel leaves the CPL; WSVG and IEM are born",
+      "detail": "Intel funds the new World Series of Video Games and turns ESL's European league into the Intel Extreme Masters. KODE5 and the Championship Gaming Invitational also start this year.",
+      "effects": {},
+      "source": "WSVG; Intel Extreme Masters; KODE5; Championship Gaming Series",
+      "status": "confirmed (year)"
+    },
+    {
+      "date": "2007-06-12",
+      "precision": "day",
+      "type": "event",
+      "title": "Championship Gaming Series draft",
+      "detail": "DirecTV's franchise league drafts players onto city teams with salaries. Some players leave their clans for the CGS.",
+      "effects": {
+        "talent_drain": 0.03
+      },
+      "source": "Championship Gaming Series",
+      "status": "confirmed (date); drain is our estimate"
+    },
+    {
+      "date": "2007-06-27",
+      "precision": "day",
+      "type": "event",
+      "title": "CGS regular season starts",
+      "detail": "",
+      "effects": {},
+      "source": "Championship Gaming Series",
+      "status": "confirmed"
+    },
+    {
+      "date": "2008-01-01",
+      "precision": "year",
+      "type": "event",
+      "title": "KODE5 stops paying prizes",
+      "detail": "From 2008 on, KODE5 winners are not paid. By 2012 the debt to teams passes $100,000.",
+      "effects": {
+        "unpaid_prizes": "KODE5"
+      },
+      "source": "KODE5",
+      "status": "confirmed (year)"
+    },
+    {
+      "date": "2008-03-01",
+      "precision": "month",
+      "type": "event",
+      "title": "CPL shuts down its events",
+      "detail": "The CPL ceases operations, citing a crowded field of leagues; it is sold to an Abu Dhabi group in August.",
+      "effects": {
+        "organizer_closed": "CPL"
+      },
+      "source": "Wikipedia: Cyberathlete Professional League; CPL (sale on 2008-08-25)",
+      "status": "confirmed"
+    },
+    {
+      "date": "2008-09-01",
+      "precision": "month",
+      "type": "era",
+      "title": "Global financial crisis",
+      "detail": "The recession hits esports sponsors; leagues fold and prize pools shrink until 2010.",
+      "effects": {
+        "prize_scale": 0.85,
+        "until": "2010-12-31"
+      },
+      "source": "Wikipedia: Championship Gaming Series (the recession is cited in its shutdown)",
+      "status": "confirmed (context); the size of the effect is our estimate"
+    },
+    {
+      "date": "2008-11-01",
+      "precision": "month",
+      "type": "event",
+      "title": "Championship Gaming Series folds",
+      "detail": "DirecTV's league announces its shutdown in the recession; its players are free agents again.",
+      "effects": {
+        "organizer_closed": "CGS"
+      },
+      "source": "Wikipedia: Championship Gaming Series",
+      "status": "confirmed"
+    },
+    {
+      "date": "2009-01-01",
+      "precision": "year",
+      "type": "event",
+      "title": "ESWC changes hands; no ESWC in 2009",
+      "detail": "Games-Solution buys the brand and the 2009 edition is not held. ESWC returns in 2010.",
+      "effects": {},
+      "source": "Electronic Sports World Cup; Counter-Strike Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2009-12-17",
+      "precision": "day",
+      "type": "event",
+      "title": "Natus Vincere founded",
+      "detail": "The Ukrainian organization that dominates 2010 is formed.",
+      "effects": {},
+      "source": "Natus Vincere",
+      "status": "confirmed"
+    },
+    {
+      "date": "2010-12-31",
+      "precision": "year",
+      "type": "event",
+      "title": "World e-Sports Masters drops Counter-Strike",
+      "detail": "2010 is the last WEM with CS.",
+      "effects": {
+        "organizer_closed": "WEM"
+      },
+      "source": "WEM",
+      "status": "confirmed"
+    },
+    {
+      "date": "2011-11-01",
+      "precision": "day",
+      "type": "event",
+      "title": "ESL prize payment controversy",
+      "detail": "ESL comes under scrutiny for paying prizes late.",
+      "effects": {},
+      "source": "ESL Major Series",
+      "status": "confirmed"
+    },
+    {
+      "date": "2012-03-10",
+      "precision": "day",
+      "type": "event",
+      "title": "Last 1.6 major (IEM Season VI)",
+      "detail": "1.6 is winding down; most organizers drop it within the year.",
+      "effects": {},
+      "source": "Counter-Strike Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2012-08-21",
+      "precision": "day",
+      "type": "version",
+      "title": "Counter-Strike: Global Offensive released",
+      "detail": "The Main Circuit moves to CS:GO over the next months. Movement, spray patterns and economy all change, so expect upsets while teams adapt.",
+      "effects": {
+        "version": "CS:GO",
+        "form_shock": 0.6,
+        "map_pool": {
+          "set": [
+            "Dust",
+            "Inferno",
+            "Mirage",
+            "Nuke",
+            "Train"
+          ]
+        }
+      },
+      "source": "Counter-Strike: Global Offensive; pool from DreamHack Winter 2013",
+      "status": "confirmed"
+    },
+    {
+      "date": "2012-11-15",
+      "precision": "day",
+      "type": "event",
+      "title": "DreamHack, MLG and ESL partner",
+      "detail": "The three organizers coordinate their circuits in Europe and North America.",
+      "effects": {},
+      "source": "DreamHack",
+      "status": "confirmed"
+    },
+    {
+      "date": "2013-06-01",
+      "precision": "year",
+      "type": "event",
+      "title": "ESL Major Series for CS:GO",
+      "detail": "ESL's first premier CS:GO competition, with finals in Cologne.",
+      "effects": {},
+      "source": "ESL Major Series",
+      "status": "confirmed (year)"
+    },
+    {
+      "date": "2013-08-13",
+      "precision": "day",
+      "type": "event",
+      "title": "Arms Deal update: weapon skins",
+      "detail": "Skins bring money into the game; sponsorship in CS:GO starts to grow.",
+      "effects": {
+        "prize_scale": 1.1
+      },
+      "source": "Wikipedia: Counter-Strike: Global Offensive",
+      "status": "confirmed"
+    },
+    {
+      "date": "2013-11-28",
+      "precision": "day",
+      "type": "event",
+      "title": "First Valve Major: DreamHack Winter 2013 ($250,000)",
+      "detail": "Valve-funded Majors become the top of the calendar; 16 teams, GSL groups.",
+      "effects": {
+        "major_teams": 16
+      },
+      "source": "DreamHack Winter 2013; Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2013-12-18",
+      "precision": "day",
+      "type": "event",
+      "title": "Overpass (and Cobblestone) added to the game",
+      "detail": "Not yet in the competitive pool.",
+      "effects": {},
+      "source": "2013-12-18 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2014-02-05",
+      "precision": "day",
+      "type": "map_rework",
+      "title": "Mirage, Inferno and Dust II reworked",
+      "detail": "",
+      "effects": {
+        "map_rework": [
+          "Mirage",
+          "Inferno",
+          "Dust"
+        ]
+      },
+      "source": "2014-02-05 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2014-02-27",
+      "precision": "day",
+      "type": "map_rework",
+      "title": "Inferno rework",
+      "detail": "",
+      "effects": {
+        "map_rework": [
+          "Inferno"
+        ]
+      },
+      "source": "2014-02-27 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2014-03-06",
+      "precision": "day",
+      "type": "map_rework",
+      "title": "Mirage and Overpass rework",
+      "detail": "",
+      "effects": {
+        "map_rework": [
+          "Mirage",
+          "Overpass"
+        ]
+      },
+      "source": "2014-03-06 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2014-07-01",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Overpass and Cache join the pool; Train leaves",
+      "detail": "Cobblestone also joins, but it is not in the game. The Cologne 2014 pool: Dust II, Inferno, Mirage, Nuke, Overpass, Cache, Cobblestone.",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Overpass",
+            "Cache"
+          ],
+          "remove": [
+            "Train"
+          ]
+        }
+      },
+      "source": "Overpass; tournament map pools (DreamHack Summer 2014, ESL One Cologne 2014)",
+      "status": "confirmed (Overpass on July 1; DreamHack Summer 2014 still used the old pool)",
+      "window": {
+        "after": "2014-06-14",
+        "before": "2014-08-14"
+      }
+    },
+    {
+      "date": "2014-09-17",
+      "precision": "day",
+      "type": "balance",
+      "title": "Tec-9 accuracy buff",
+      "detail": "Better accuracy and less recoil make T-side pistol buys stronger.",
+      "effects": {
+        "weights": {
+          "Pistol": 1.05
+        }
+      },
+      "source": "2014-09-17 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2014-11-20",
+      "precision": "day",
+      "type": "event",
+      "title": "VAC ban wave hits pro players",
+      "detail": "Several professional players are banned for cheating (generated ban events).",
+      "effects": {},
+      "source": "Banned Players/Valve",
+      "status": "confirmed"
+    },
+    {
+      "date": "2015-01-26",
+      "precision": "day",
+      "type": "event",
+      "title": "iBUYPOWER match-fixing bans",
+      "detail": "Valve bans the players involved in the 2014 match-fixing case from its events.",
+      "effects": {},
+      "source": "Banned Players/Valve",
+      "status": "confirmed"
+    },
+    {
+      "date": "2015-04-13",
+      "precision": "week",
+      "type": "map_pool",
+      "title": "Train returns; Nuke leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Train"
+          ],
+          "remove": [
+            "Nuke"
+          ]
+        },
+        "map_rework": [
+          "Train"
+        ]
+      },
+      "source": "tournament map pools (ESL Pro League Season 1, 99Damage Arena 5, DreamHack Tours 2015)",
+      "status": "confirmed (within days)",
+      "window": {
+        "after": "2015-04-10",
+        "before": "2015-04-15"
+      }
+    },
+    {
+      "date": "2015-04-28",
+      "precision": "day",
+      "type": "event",
+      "title": "ESL ESEA Pro League announced ($1,000,000)",
+      "detail": "A season-based league for Europe and North America with a million dollars in prizes over two seasons.",
+      "effects": {
+        "prize_scale": 1.05
+      },
+      "source": "ESL Pro League",
+      "status": "confirmed"
+    },
+    {
+      "date": "2015-07-01",
+      "precision": "month",
+      "type": "event",
+      "title": "Modern Times Group buys ESL",
+      "detail": "Big media money enters CS:GO; prize pools grow.",
+      "effects": {
+        "prize_scale": 1.1
+      },
+      "source": "ESL Major Series",
+      "status": "confirmed"
+    },
+    {
+      "date": "2015-09-15",
+      "precision": "day",
+      "type": "balance",
+      "title": "Animation and hitbox overhaul; M4A1-S changed",
+      "detail": "New player animations and hitboxes change how fights feel.",
+      "effects": {
+        "weights": {
+          "Rifle": 0.98
+        },
+        "form_shock": 0.15
+      },
+      "source": "2015-09-15 Patch",
+      "status": "confirmed (patch); effect is our estimate"
+    },
+    {
+      "date": "2015-12-01",
+      "precision": "month",
+      "type": "event",
+      "title": "Valve introduces Minor Championships",
+      "detail": "Regional Minors become the qualifying route to the Majors.",
+      "effects": {
+        "invites": "minors"
+      },
+      "source": "Majors",
+      "status": "confirmed (month)"
+    },
+    {
+      "date": "2016-02-17",
+      "precision": "day",
+      "type": "map_rework",
+      "title": "Operation Wildfire: the new Nuke",
+      "detail": "Nuke is rebuilt from scratch; teams must relearn it.",
+      "effects": {
+        "map_rework": [
+          "Nuke"
+        ]
+      },
+      "source": "Operation Wildfire",
+      "status": "confirmed"
+    },
+    {
+      "date": "2016-03-29",
+      "precision": "day",
+      "type": "event",
+      "title": "Major prize pool rises to $1,000,000 (MLG Columbus)",
+      "detail": "",
+      "effects": {
+        "prize_scale": 1.1
+      },
+      "source": "MLG/2016/Columbus",
+      "status": "confirmed"
+    },
+    {
+      "date": "2016-05-10",
+      "precision": "week",
+      "type": "map_pool",
+      "title": "Nuke returns; Inferno leaves for rework",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Nuke"
+          ],
+          "remove": [
+            "Inferno"
+          ]
+        }
+      },
+      "source": "tournament map pools (DreamHack Austin 2016, DreamHack Tours 2016, ELEAGUE Season 1)",
+      "status": "confirmed (within days)",
+      "window": {
+        "after": "2016-05-06",
+        "before": "2016-05-14"
+      }
+    },
+    {
+      "date": "2016-05-24",
+      "precision": "day",
+      "type": "event",
+      "title": "ELEAGUE starts on TBS",
+      "detail": "CS:GO on US cable television.",
+      "effects": {
+        "prize_scale": 1.05
+      },
+      "source": "ELEAGUE/Season 1; ELEAGUE",
+      "status": "confirmed"
+    },
+    {
+      "date": "2016-10-10",
+      "precision": "day",
+      "type": "map_rework",
+      "title": "Inferno overhaul",
+      "detail": "New look and layout changes, including the reopened T-spawn exit.",
+      "effects": {
+        "map_rework": [
+          "Inferno"
+        ]
+      },
+      "source": "Inferno/csgo",
+      "status": "confirmed"
+    },
+    {
+      "date": "2016-12-01",
+      "precision": "month",
+      "type": "event",
+      "title": "PEA dispute: players refuse to leave ESL Pro League",
+      "detail": "The North American team owners' association bars its players from ESL Pro League; the players push back and the PEA drops its CS:GO league.",
+      "effects": {},
+      "source": "Wikipedia: Professional Esports Association; Open Letter to the Professional eSports Association",
+      "status": "confirmed"
+    },
+    {
+      "date": "2017-02-09",
+      "precision": "week",
+      "type": "map_pool",
+      "title": "Inferno returns; Dust II leaves for rework",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Inferno"
+          ],
+          "remove": [
+            "Dust"
+          ]
+        }
+      },
+      "source": "tournament map pools (Assembly Winter 2017, DreamHack Las Vegas 2017)",
+      "status": "confirmed (within days)",
+      "window": {
+        "after": "2017-02-03",
+        "before": "2017-02-15"
+      }
+    },
+    {
+      "date": "2017-05-23",
+      "precision": "day",
+      "type": "balance",
+      "title": "Operation Hydra: UMP nerf",
+      "detail": "",
+      "effects": {
+        "weights": {
+          "Rifle": 1.01
+        }
+      },
+      "source": "2017-05-23 Patch",
+      "status": "confirmed (patch); effect is our estimate"
+    },
+    {
+      "date": "2017-07-16",
+      "precision": "day",
+      "type": "event",
+      "title": "Majors switch to a Swiss group stage",
+      "detail": "",
+      "effects": {},
+      "source": "Majors",
+      "status": "confirmed (2017)"
+    },
+    {
+      "date": "2017-10-10",
+      "precision": "month",
+      "type": "map_rework",
+      "title": "Dust II reskinned",
+      "detail": "Dust II's first big change in CS:GO.",
+      "effects": {
+        "map_rework": [
+          "Dust"
+        ]
+      },
+      "source": "Dust II/csgo",
+      "status": "confirmed (October 2017)"
+    },
+    {
+      "date": "2018-01-12",
+      "precision": "day",
+      "type": "event",
+      "title": "Majors grow to 24 teams (ELEAGUE Boston)",
+      "detail": "An offline qualifier becomes part of the Major.",
+      "effects": {
+        "major_teams": 24
+      },
+      "source": "Majors",
+      "status": "confirmed"
+    },
+    {
+      "date": "2018-04-20",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Dust II returns; Cobblestone leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Dust"
+          ]
+        }
+      },
+      "source": "2018-04-20 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2018-06-12",
+      "precision": "day",
+      "type": "balance",
+      "title": "CZ75-Auto nerf; M4A1-S reserve up; MP7 cheaper",
+      "detail": "The CZ75 no longer one-shots a helmeted opponent.",
+      "effects": {
+        "weights": {
+          "Pistol": 0.98
+        }
+      },
+      "source": "2018-06-12 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2018-12-06",
+      "precision": "day",
+      "type": "event",
+      "title": "CS:GO goes free to play",
+      "detail": "The player base grows; more talent appears in the lower tiers.",
+      "effects": {
+        "youth_talent": 1.1
+      },
+      "source": "2018-12-06 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2019-03-13",
+      "precision": "day",
+      "type": "balance",
+      "title": "Round-loss bonus rework",
+      "detail": "Loss bonuses step down one level per win instead of resetting, which weakens economic snowballs. AUG and M4A1-S are also tweaked.",
+      "effects": {
+        "comeback": 1.1
+      },
+      "source": "2019-03-13 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2019-03-29",
+      "precision": "month",
+      "type": "map_pool",
+      "title": "Cache leaves the pool (Vertigo joins)",
+      "detail": "Vertigo is not in the game.",
+      "effects": {
+        "map_pool": {
+          "remove": [
+            "Cache"
+          ]
+        }
+      },
+      "source": "Cache/csgo; StarLadder/2019/Major",
+      "status": "confirmed (March 2019)"
+    },
+    {
+      "date": "2019-06-18",
+      "precision": "day",
+      "type": "balance",
+      "title": "AUG nerf",
+      "detail": "",
+      "effects": {
+        "weights": {
+          "Rifle": 0.99
+        }
+      },
+      "source": "2019-06-18 Patch",
+      "status": "confirmed (patch); effect is our estimate"
+    },
+    {
+      "date": "2020-03-02",
+      "precision": "day",
+      "type": "era",
+      "title": "COVID-19: LAN events move online",
+      "detail": "After IEM Katowice 2020 (played without a crowd) every top event is online by region until IEM Cologne 2021. The Rio Major is postponed and then cancelled in September 2020.",
+      "effects": {
+        "online_only": true,
+        "until": "2021-07-06"
+      },
+      "source": "IEM Katowice 2020; IEM Cologne 2021; Wikipedia: Counter-Strike Major Championships",
+      "status": "confirmed"
+    },
+    {
+      "date": "2020-03-28",
+      "precision": "day",
+      "type": "event",
+      "title": "Flashpoint: a team-owned league",
+      "detail": "Teams form their own league with FACEIT, with over $2 million in prizes for 2020.",
+      "effects": {},
+      "source": "Flashpoint",
+      "status": "confirmed"
+    },
+    {
+      "date": "2020-06-01",
+      "precision": "year",
+      "type": "event",
+      "title": "Regional Major Rankings replace the Minors",
+      "detail": "During the online period, Major spots come from points earned at regional RMR events.",
+      "effects": {
+        "invites": "rmr"
+      },
+      "source": "Regional Major Rankings",
+      "status": "confirmed (2020)"
+    },
+    {
+      "date": "2020-09-01",
+      "precision": "month",
+      "type": "event",
+      "title": "ESIC opens its match-fixing investigation",
+      "detail": "Working with law enforcement on betting syndicates bribing lower-tier players; bans follow over the next years.",
+      "effects": {},
+      "source": "Wikipedia: Counter-Strike in esports",
+      "status": "confirmed"
+    },
+    {
+      "date": "2020-12-03",
+      "precision": "day",
+      "type": "event",
+      "title": "Operation Broken Fang: Ancient released",
+      "detail": "Not yet in the competitive pool.",
+      "effects": {},
+      "source": "Ancient/csgo",
+      "status": "confirmed"
+    },
+    {
+      "date": "2021-01-27",
+      "precision": "day",
+      "type": "event",
+      "title": "Coach spectator bug bans",
+      "detail": "Coaches who abused the spectator bug are banned (generated ban events).",
+      "effects": {},
+      "source": "Banned Players/Valve",
+      "status": "confirmed"
+    },
+    {
+      "date": "2021-05-03",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Ancient joins; Train leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Ancient"
+          ],
+          "remove": [
+            "Train"
+          ]
+        }
+      },
+      "source": "2021-05-03 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2021-10-26",
+      "precision": "day",
+      "type": "event",
+      "title": "First Major since 2019 (Stockholm, $2,000,000)",
+      "detail": "Majors return on LAN with a doubled prize pool.",
+      "effects": {},
+      "source": "PGL Major Stockholm 2021",
+      "status": "confirmed"
+    },
+    {
+      "date": "2022-01-01",
+      "precision": "year",
+      "type": "event",
+      "title": "RMR becomes single events per region",
+      "detail": "Europe, Americas and Asia-Pacific each hold one RMR event for their Major spots.",
+      "effects": {
+        "invites": "rmr"
+      },
+      "source": "Majors",
+      "status": "confirmed (2022)"
+    },
+    {
+      "date": "2022-06-15",
+      "precision": "day",
+      "type": "balance",
+      "title": "M4A1-S magazine cut to 20",
+      "detail": "",
+      "effects": {
+        "weights": {
+          "Rifle": 0.99
+        }
+      },
+      "source": "2022-06-15 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2022-11-18",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Anubis joins; Dust II leaves. AWP magazine cut to 5",
+      "detail": "The AWP magazine drops from 10 to 5 rounds and the M4A1-S loses range.",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Anubis"
+          ],
+          "remove": [
+            "Dust"
+          ]
+        },
+        "weights": {
+          "AWP": 0.95,
+          "Rifle": 0.99
+        }
+      },
+      "source": "2022-11-18 Patch",
+      "status": "confirmed"
+    },
+    {
+      "date": "2023-03-22",
+      "precision": "day",
+      "type": "event",
+      "title": "Counter-Strike 2 announced (Limited Test)",
+      "detail": "",
+      "effects": {},
+      "source": "Counter-Strike 2",
+      "status": "confirmed"
+    },
+    {
+      "date": "2023-06-01",
+      "precision": "year",
+      "type": "event",
+      "title": "Valve announces its Regional Standings (VRS)",
+      "detail": "Valve's own team ranking will seed the RMRs and Majors.",
+      "effects": {},
+      "source": "Valve Regional Standings",
+      "status": "confirmed (2023)"
+    },
+    {
+      "date": "2023-08-01",
+      "precision": "month",
+      "type": "event",
+      "title": "Valve bans partner leagues from 2025",
+      "detail": "Tournament organizers may no longer have business ties with teams; BLAST and ESL rebuild their circuits around VRS invitations.",
+      "effects": {},
+      "source": "Wikipedia: Blast Premier",
+      "status": "confirmed"
+    },
+    {
+      "date": "2023-09-27",
+      "precision": "day",
+      "type": "version",
+      "title": "Counter-Strike 2 replaces CS:GO",
+      "detail": "Sub-tick servers and volumetric smokes change utility play: grenades and coordination matter more. Every map is rebuilt in Source 2. Matches become MR12 (first to 13 rounds).",
+      "effects": {
+        "version": "CS2",
+        "form_shock": 0.5,
+        "weights": {
+          "Grenades": 1.06,
+          "Teamwork": 1.03
+        },
+        "map_rework": [
+          "Dust",
+          "Inferno",
+          "Mirage",
+          "Nuke",
+          "Overpass",
+          "Ancient",
+          "Anubis"
+        ]
+      },
+      "source": "Counter-Strike 2; Wikipedia: Counter-Strike 2",
+      "status": "confirmed (release); effect is our estimate"
+    },
+    {
+      "date": "2024-02-07",
+      "precision": "day",
+      "type": "balance",
+      "title": "CS2 smoke changes",
+      "detail": "",
+      "effects": {
+        "weights": {
+          "Grenades": 1.01
+        }
+      },
+      "source": "2024-02-07 Patch",
+      "status": "confirmed (patch); effect is our estimate"
+    },
+    {
+      "date": "2024-03-17",
+      "precision": "day",
+      "type": "event",
+      "title": "VRS seeds the Major (PGL Copenhagen 2024)",
+      "detail": "",
+      "effects": {},
+      "source": "Valve Regional Standings",
+      "status": "confirmed"
+    },
+    {
+      "date": "2024-04-26",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Dust II returns; Overpass leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Dust"
+          ],
+          "remove": [
+            "Overpass"
+          ]
+        }
+      },
+      "source": "Overpass; Perfect World/Major/2024/Shanghai",
+      "status": "confirmed (Overpass date; Dust II in the Shanghai pool)"
+    },
+    {
+      "date": "2024-11-13",
+      "precision": "day",
+      "type": "map_pool",
+      "title": "Train returns (CS2 version); Vertigo leaves",
+      "detail": "The new Train enters the competitive map groups; Majors use it from 2025. The same update adds damage prediction.",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Train"
+          ]
+        },
+        "map_rework": [
+          "Train"
+        ]
+      },
+      "source": "2024-11-13 Patch; BLAST/Major/2025/Austin",
+      "status": "confirmed (patch; Austin 2025 pool)"
+    },
+    {
+      "date": "2025-01-01",
+      "precision": "year",
+      "type": "era",
+      "title": "Open circuit: VRS decides invitations",
+      "detail": "Announced by Valve in 2023: from 2025 no organizer may have partner teams, and only the Valve Regional Standings may be used for invitations. Events are graded Tier 1, Tier 2, Wildcard or unranked.",
+      "effects": {
+        "invites": "vrs"
+      },
+      "source": "Wikipedia: Counter-Strike in esports; Blast Premier; Valve Tier 1 Events",
+      "status": "confirmed"
+    },
+    {
+      "date": "2025-06-03",
+      "precision": "day",
+      "type": "event",
+      "title": "32-team Majors; RMRs replaced by Major Regional Qualifiers",
+      "detail": "Announced on January 3, 2025. The top 16 teams by the last Major and VRS are invited directly; the rest come through regional qualifiers.",
+      "effects": {
+        "major_teams": 32
+      },
+      "source": "Valve Regional Standings; Regional Major Rankings",
+      "status": "confirmed"
+    },
+    {
+      "date": "2025-06-09",
+      "precision": "day",
+      "type": "event",
+      "title": "All Major slots filled by VRS invites",
+      "detail": "Major Regional Qualifiers are removed; every slot comes from VRS by region.",
+      "effects": {
+        "invites": "vrs"
+      },
+      "source": "Valve Regional Standings",
+      "status": "confirmed"
+    },
+    {
+      "date": "2025-07-01",
+      "precision": "month",
+      "type": "map_pool",
+      "title": "Overpass returns; Anubis leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Overpass"
+          ],
+          "remove": [
+            "Anubis"
+          ]
+        }
+      },
+      "window": {
+        "after": "2025-06-03",
+        "before": "2025-07-23"
+      },
+      "source": "tournament map pools (BLAST Austin Major 2025, IEM Cologne 2025)",
+      "status": "confirmed (between the two events)"
+    },
+    {
+      "date": "2025-11-24",
+      "precision": "day",
+      "type": "event",
+      "title": "Best-of-five Major grand final (StarLadder Budapest)",
+      "detail": "Stage 1 spots also come from VRS from this Major on.",
+      "effects": {},
+      "source": "Wikipedia: Counter-Strike Major Championships",
+      "status": "confirmed"
+    },
+    {
+      "date": "2026-01-01",
+      "precision": "month",
+      "type": "map_pool",
+      "title": "Anubis returns; Train leaves",
+      "detail": "",
+      "effects": {
+        "map_pool": {
+          "add": [
+            "Anubis"
+          ],
+          "remove": [
+            "Train"
+          ]
+        }
+      },
+      "window": {
+        "after": "2025-11-24",
+        "before": "2026-01-22"
+      },
+      "source": "tournament map pools (StarLadder Budapest Major 2025, IEM Kraków 2026)",
+      "status": "confirmed (between the two events)"
+    }
   ]
 }
