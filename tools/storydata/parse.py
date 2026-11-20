@@ -108,6 +108,30 @@ def _section(table: Tag) -> str:
     return clean(h.get_text(" ")) if h else ""
 
 
+def _results(soup: BeautifulSoup) -> list[dict]:
+    """The Results table of a player or team page (placements; not the match list)."""
+    results = []
+    for table in soup.select("table.wikitable, table.table2__table"):
+        head, body = _table_rows(table)
+        if not {"Date", "Tournament", "Place"} <= set(head):
+            continue
+        for row in body:
+            cells = row.select("td")
+            if len(cells) < len(head):
+                continue
+            col = {h: cells[i] for i, h in enumerate(head) if h}
+            results.append({
+                "date": date(col["Date"].get_text(" ")),
+                "place": clean(col["Place"].get_text(" ")),
+                "tier": clean(col["Tier"].get_text(" ")) if "Tier" in col else None,
+                "type": clean(col["Type"].get_text(" ")) if "Type" in col else None,
+                "tournament": link_title(col["Tournament"].select_one("a")) or clean(col["Tournament"].get_text(" ")),
+                "team": link_title(col["Team"].select_one("a")) if "Team" in col else None,
+                "prize": money(col["Prize"].get_text(" ")) if "Prize" in col else None,
+            })
+    return results
+
+
 def parse_team(soup: BeautifulSoup) -> dict:
     ib = infobox(soup)
     name = clean(soup.select_one("h1").get_text(" ")) if soup.select_one("h1") else ""
@@ -123,11 +147,15 @@ def parse_team(soup: BeautifulSoup) -> dict:
             if len(cells) < len(head):
                 continue
             col = {h: cells[i] for i, h in enumerate(head) if h}
+            # The unnamed column right after Name holds the position ("Head Coach", "Founder").
+            if "Name" in head and head.index("Name") + 1 < len(head) and head[head.index("Name") + 1] == "":
+                col["Position"] = cells[head.index("Name") + 1]
             id_cell = col.get("ID")
             record = {
                 "id": clean(id_cell.get_text(" ")) if id_cell else None,
                 "page": link_title(id_cell.select_one("a") if id_cell else None),
                 "name": clean(col["Name"].get_text(" ")) if "Name" in col else None,
+                "position": clean(col["Position"].get_text(" ")) if "Position" in col else None,
                 "country": flag_country(id_cell) or flag_country(row),
                 "join": date(col["Join Date"].get_text(" ")) if "Join Date" in col else None,
                 "inactive": date(col["Inactive Date"].get_text(" ")) if "Inactive Date" in col else None,
@@ -142,32 +170,15 @@ def parse_team(soup: BeautifulSoup) -> dict:
     return {
         "kind": "team", "name": name, "location": ib.get("Location"), "region": ib.get("Region"),
         "created": created, "disbanded": disbanded, "winnings": money(ib.get("Approx. Total Winnings")),
-        "members": members, "staff": staff,
+        "igl": ib.get("In-Game Leader"), "coaches": ib.get("Coaches"),
+        "members": members, "staff": staff, "results": _results(soup),
     }
 
 
 def parse_player(soup: BeautifulSoup) -> dict:
     ib = infobox(soup)
     nick = clean(soup.select_one("h1").get_text(" ")) if soup.select_one("h1") else ""
-    results = []
-    for table in soup.select("table.wikitable"):
-        head, body = _table_rows(table)
-        if not {"Date", "Tournament", "Team"} <= set(head):
-            continue
-        for row in body:
-            cells = row.select("td")
-            if len(cells) < len(head):
-                continue
-            col = {h: cells[i] for i, h in enumerate(head) if h}
-            results.append({
-                "date": date(col["Date"].get_text(" ")),
-                "place": clean(col["Place"].get_text(" ")) if "Place" in col else None,
-                "tier": clean(col["Tier"].get_text(" ")) if "Tier" in col else None,
-                "type": clean(col["Type"].get_text(" ")) if "Type" in col else None,
-                "tournament": link_title(col["Tournament"].select_one("a")) or clean(col["Tournament"].get_text(" ")),
-                "team": link_title(col["Team"].select_one("a")),
-                "prize": money(col["Prize"].get_text(" ")) if "Prize" in col else None,
-            })
+    results = _results(soup)
     years = re.findall(r"\d{4}", ib.get("Years Active (Player)", ""))
     return {
         "kind": "player", "id": nick, "name": ib.get("Name"), "romanized": ib.get("Romanized Name"),

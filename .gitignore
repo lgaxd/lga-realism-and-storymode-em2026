@@ -8,4 +8,5 @@ build.log
 /tools/storydata/.venv/
 /tools/storydata/cache/
 /tools/storydata/logos/
+/tools/storydata/out/
 __pycache__/
