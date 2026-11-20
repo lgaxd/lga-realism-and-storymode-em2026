@@ -105,7 +105,7 @@ A tournament open only to teams from one Subregion: one whose name names a Subre
 _Avoid_: local tournament, national league
 
 **VRS**:
-Valve Regional Standings: Valve's official team ranking within each Region, used to decide tournament invites.
+Valve Regional Standings: the team ranking, modelled on Valve's published method, that decides tournament invites, with the three Regions sharing the slots by quota.
 _Avoid_: ranking, HLTV ranking, world ranking
 
 ### Story Mode

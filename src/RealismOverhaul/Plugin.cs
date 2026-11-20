@@ -50,6 +50,8 @@ public class Plugin : BasePlugin
             Features.RosterSuggestions.Apply(harmony);
         if (Flags.RegionalTournaments.Value)
             Features.Regions.Apply(harmony);
+        if (Flags.Vrs.Value)
+            Features.Vrs.Apply(harmony);
 
         Log.LogInfo($"{Name} loaded");
     }
