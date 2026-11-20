@@ -237,8 +237,10 @@ def parse_tournament(soup: BeautifulSoup) -> dict:
         players = []
         for row in card.select("tr"):
             # The first link in a row is the flag (Category:Country); the player link follows it.
+            # The first named link that is not a flag or a team icon (loans show the other team's icon).
             a = next((x for x in row.select("a[href*='/counterstrike/']")
-                      if x.find_parent(class_="flag") is None and "Category:" not in x.get("href", "")), None)
+                      if x.find_parent(class_="flag") is None and "Category:" not in x.get("href", "")
+                      and x.find_parent(class_=re.compile(r"team-template")) is None and clean(x.get_text(" "))), None)
             pos = clean(row.select_one("th").get_text(" ")) if row.select_one("th") else ""
             if a is not None and pos[:1].isdigit():
                 players.append({"id": clean(a.get_text(" ")), "page": link_title(a), "country": flag_country(row), "slot": pos})

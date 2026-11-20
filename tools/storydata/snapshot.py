@@ -189,6 +189,10 @@ class Archive:
         self.staff: dict[str, list] = defaultdict(list)         # team -> staff spells
         self._index()
 
+    def _is_team(self, key: str) -> bool:
+        """A roster entry that is really a team page (an icon link), not a player."""
+        return key in self.teams or key in self.results or key in self.alias.values() and key in self.teams
+
     def team_key(self, title: str | None) -> str | None:
         if not title or title in NOT_A_TEAM:
             return None
@@ -227,7 +231,7 @@ class Archive:
                 team = self.team_key(card.get("team"))
                 for p in card["players"]:
                     key = self.player_key(p.get("page"), p.get("id"))
-                    if not key or not team:
+                    if not key or not team or not p.get("id") or self._is_team(key):
                         continue
                     self._note(key, p.get("id"), p.get("country"))
                     self.evidence[key].append((day(t.get("start")) or when, team))
@@ -268,7 +272,7 @@ class Archive:
     # -- the world at a date
 
     def team_at(self, player: str, at: int) -> tuple[str, bool] | None:
-        """(team, benched) for a player at day `at`, or None."""
+        """(team, benched) for a player at day `at`, or None (see also from_page)."""
         best = None
         for team, join, bench, leave in self.spells.get(player, []):
             if join is not None and join <= at and (leave is None or leave > at):
@@ -368,12 +372,27 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         hit = arc.team_at(player, at)
         if hit:
             roster[hit[0]].append((player, hit[1]))
+    # A team's own page decides its roster: tournament appearances (redirected names, stand-ins)
+    # only fill a team whose page gives fewer than five players on that date.
+    for team, members in roster.items():
+        listed = [m for m in members if m[0] in arc.listed.get(team, ())]
+        if len(listed) >= 5 and len(listed) < len(members):
+            members[:] = listed
     # The same player can hide under two keys (a redirect we never fetched: "NBK" / "NBK-"):
     # teammates whose nicks match ignoring case and punctuation are one player.
+    def norm(text: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", text.lower())
+    # Alternate IDs on player pages ("pashaBiceps" was also "pasha") name the same player.
+    alt: dict[str, str] = {}
+    for key, rec in arc.players.items():
+        for other in re.split(r"[,/;]", rec.get("alternate_ids") or ""):
+            if norm(other):
+                alt.setdefault(norm(other), norm(rec.get("id") or key))
     for team, members in roster.items():
         seen_nick: dict[str, tuple] = {}
         for player, benched in list(members):
-            nick = re.sub(r"[^a-z0-9]", "", (arc.info.get(player, {}).get("nick") or player.removeprefix("id:")).lower())
+            nick = norm(arc.info.get(player, {}).get("nick") or player.removeprefix("id:"))
+            nick = alt.get(nick, nick)
             other = seen_nick.get(nick)
             if other is None:
                 seen_nick[nick] = (player, benched)

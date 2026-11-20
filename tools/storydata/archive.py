@@ -114,19 +114,29 @@ def page(original_url: str, *, before: str = "2026", stamp: str | None = None,
 
 
 def binary(original_url: str) -> bytes | None:
-    """An archived file (an image) as bytes: the latest successful capture. Cached on disk."""
+    """An archived file (an image) as bytes. Cached on disk.
+
+    One direct request to the capture nearest today; only when that capture is an archived error
+    does it ask the index for the latest successful one.
+    """
     path = _cache_path("files", original_url).with_suffix(".bin")
     if path.exists():
         data = path.read_bytes()
         return data or None
-    rows = cdx({"url": original_url, "filter": "statuscode:200", "fl": "timestamp", "limit": "-1"})
-    stamps = [row[0] for row in rows[1:] if row] if rows else []
     data = b""
-    if stamps:
-        try:
-            data = get(f"https://web.archive.org/web/{stamps[-1]}id_/{original_url}").content
-        except requests.HTTPError:
-            data = b""
+    try:
+        data = get(f"https://web.archive.org/web/2026id_/{original_url}").content
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 403:
+            rows = cdx({"url": original_url, "filter": "statuscode:200", "fl": "timestamp", "limit": "-1"})
+            stamps = [row[0] for row in rows[1:] if row] if rows else []
+            if stamps:
+                try:
+                    data = get(f"https://web.archive.org/web/{stamps[-1]}id_/{original_url}").content
+                except requests.HTTPError:
+                    data = b""
+    if data[:1] == b"<":  # an HTML error page, not an image
+        data = b""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return data or None
