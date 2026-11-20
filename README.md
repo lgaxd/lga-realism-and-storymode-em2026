@@ -22,9 +22,9 @@ Not affiliated with or endorsed by the game's developer.
 | Academy matches stop the calendar like Main Roster matches (watch or simulate) | ✅ Works |
 | Retired players: 'Hire as coach' button, Comeback within 5 years (skills decay with time away) | ✅ Works |
 | Former-player coach as Emergency Sub (instead of a forfeit) | 🧪 Built, not yet verified |
-| Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor) with Role Balance in matches | ✅ Works |
-| CT Positions per map (assigned by Role; manual setup screen planned) | ✅ Works |
-| Map Familiarity and CT/T Side Bias (saved in a sidecar file next to the save) | ✅ Works |
+| Realistic Roles (Entry, Trader, Support, Lurker, AWPer, Anchor), selectable on the profile, with Role Balance in matches | ✅ Works |
+| CT Positions per map (by Role, or set on the map training screen) | ✅ Works |
+| Map Familiarity and CT/T Side Bias (Maps panel on the profile; saved in a sidecar file next to the save) | ✅ Works |
 | Coach Roster Suggestions when a player is in a Performance Slump | ✅ Works |
 | Subregions and Regional Tournaments | 🧪 Built, not yet verified |
 | VRS invites based on Valve's published Regional Standings formula (Region quotas) | ✅ Works (history builds over 6 months) |
