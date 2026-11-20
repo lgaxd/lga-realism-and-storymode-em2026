@@ -50,13 +50,53 @@ public static class VrsUi
             _window = __instance;
             var root = __instance.transform;
             var style = Style(__instance);
-            if (style == null || root.Find(ButtonName) != null) return;
-            // A third tab next to "Teams | Players" at the window's top-left.
-            UiKit.TextButton(root, ButtonName, style, "<b>VRS</b>", 18f, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(230f, -14f), new Vector2(80f, 34f), Toggle);
+            if (style == null || FindButton(__instance) != null) return;
+            // A third tab right after "Teams | Players": find the Players tab by its text.
+            var playersTab = FindTab(__instance);
+            if (playersTab == null)
+            {
+                Plugin.Log.LogWarning("[VrsUi] could not find the Players tab; placing the VRS button at the top-left");
+                UiKit.TextButton(root, ButtonName, style, "<b>VRS</b>", 18f, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f),
+                    new Vector2(230f, 40f), new Vector2(80f, 34f), Toggle);
+            }
+            else
+            {
+                var tabRt = playersTab.GetComponent<RectTransform>();
+                var parent = playersTab.parent;
+                var btn = UiKit.TextButton(parent, ButtonName, style, "<b>VRS</b>", 18f, tabRt.anchorMin, tabRt.anchorMax, tabRt.pivot,
+                    tabRt.anchoredPosition + new Vector2(tabRt.rect.width * (1f - tabRt.pivot.x) + 30f + 80f * tabRt.pivot.x, 0f), new Vector2(80f, tabRt.rect.height), Toggle);
+                if (parent.GetComponent<UnityEngine.UI.LayoutGroup>() != null)
+                {
+                    var le = btn.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+                    le.preferredWidth = 80f;
+                    le.preferredHeight = tabRt.rect.height;
+                }
+                btn.transform.SetSiblingIndex(playersTab.GetSiblingIndex() + 1);
+            }
             Plugin.Log.LogInfo("[VrsUi] VRS button added to the statistics screen");
         }
         catch (Exception e) { Plugin.Log.LogError($"[VrsUi] could not add the VRS button: {e}"); }
+    }
+
+    static readonly string[] PlayersTabTexts = { "Jogadores", "Players", "Jugadores" };
+
+    /// The Players tab (the tab object itself if its text sits inside a button).
+    static Transform? FindTab(StatisticWindow w)
+    {
+        foreach (var t in w.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (t == null || !PlayersTabTexts.Contains((t.text ?? "").Trim())) continue;
+            var tr = t.transform;
+            return tr.parent != null && tr.parent.GetComponent<UnityEngine.UI.Button>() != null ? tr.parent : tr;
+        }
+        return null;
+    }
+
+    static Transform? FindButton(StatisticWindow w)
+    {
+        foreach (var t in w.GetComponentsInChildren<Transform>(true))
+            if (t != null && t.name == ButtonName) return t;
+        return null;
     }
 
     static void Toggle()
@@ -99,12 +139,14 @@ public static class VrsUi
         var s = Vrs.Current();
         var club = GlobalValues.DataTeam;
 
-        var panel = UiKit.Image(w.transform, PanelName, new Color(0.06f, 0.07f, 0.1f, 0.97f), Vector2.zero, Vector2.one,
+        var panel = UiKit.Image(w.transform, PanelName, new Color(0.055f, 0.065f, 0.09f, 1f), Vector2.zero, Vector2.one,
             new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-20f, -60f));
         panel.raycastTarget = true; // block clicks to the screen underneath
         var t = panel.transform;
         t.SetAsLastSibling();
-        w.transform.Find(ButtonName)?.SetAsLastSibling(); // keep the toggle on top of the panel
+        // Keep the toggle clickable above the panel.
+        var button = FindButton(w);
+        if (button != null && button.parent == w.transform) button.SetAsLastSibling();
 
         UiKit.Text(t, "Title", style, "<b>Valve Regional Standings (VRS)</b>", 22f, Color.white, TextAlignmentOptions.Left,
             new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(24f, -14f), new Vector2(-140f, 30f));
