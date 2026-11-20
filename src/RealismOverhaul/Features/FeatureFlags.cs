@@ -98,6 +98,9 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> ForceRosterSuggestionTest { get; } = config.Bind("Diagnostics", "ForceRosterSuggestionTest", false,
         "Set to true to receive one Roster Suggestion email on the next day change, for your weakest Main Roster player, without waiting for a real Performance Slump. Turns itself off.");
 
+    public ConfigEntry<bool> DumpUi { get; } = config.Bind("Diagnostics", "DumpUi", true,
+        "Write the layout of the profile, squad and map training screens to BepInEx/RealismOverhaul-ui-dump.txt (once per screen per session).");
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

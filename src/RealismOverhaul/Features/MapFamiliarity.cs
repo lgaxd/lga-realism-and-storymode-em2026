@@ -50,6 +50,7 @@ public static class MapFamiliarity
     {
         Sidecar.Apply(harmony);
         Sidecar.Register(new Section());
+        ManualChoices.Apply(harmony);
         harmony.PatchAll(typeof(MapFamiliarity));
         Plugin.Log.LogInfo("[MapFamiliarity] patches applied");
     }
@@ -235,8 +236,24 @@ public static class MapFamiliarity
         };
         var free = Enumerable.Range(0, positions.Length).ToList();
         var result = new List<(string, DataPlayer)>();
-        // Most constrained Roles first: AWPer, then Anchor, Support, Lurker, Entry/Trader.
-        foreach (var player in five.OrderBy(x => Roles.RolesOf(x).Primary switch
+
+        // The user's choices for this team and map come first (only for players in the lineup).
+        var teamId = five.Count > 0 ? five[0].TeamId : null;
+        var chosen = teamId == null ? null : ManualChoices.CtPositions(teamId, map);
+        var placed = new HashSet<string>();
+        if (chosen != null)
+            foreach (var (position, playerId) in chosen)
+            {
+                var slot = Array.IndexOf(positions, position);
+                var player = five.FirstOrDefault(x => x.Id == playerId);
+                if (slot < 0 || player == null || !free.Contains(slot)) continue;
+                free.Remove(slot);
+                placed.Add(player.Id);
+                result.Add((position, player));
+            }
+
+        // Then the rest by Role, most constrained first: AWPer, Anchor, Support, Lurker, Entry/Trader.
+        foreach (var player in five.Where(x => !placed.Contains(x.Id)).OrderBy(x => Roles.RolesOf(x).Primary switch
                  { Role.AWPer => 0, Role.Anchor => 1, Role.Support => 2, Role.Lurker => 3, _ => 4 }))
         {
             if (free.Count == 0) break;
@@ -331,10 +348,16 @@ public static class MapFamiliarity
             if (cut >= 0) text = text[..cut];
 
             var pt = (UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en").StartsWith("pt");
-            var maps = string.Join("  ", Maps.Select(m => (Map: m, Fam: Get(p, m)))
-                .OrderByDescending(x => x.Fam).Select(x => $"{x.Map} {x.Fam:F0}"));
+            // One bar per map, best first: ten blocks, coloured red / yellow / green by level.
+            var lines = Maps.Select(m => (Map: m, Fam: Get(p, m))).OrderByDescending(x => x.Fam).Select(x =>
+            {
+                var filled = (int)Math.Round(x.Fam / 10f);
+                var color = x.Fam >= 70 ? "#4CD964" : x.Fam >= 45 ? "#FFCC00" : "#FF5A4F";
+                var name = x.Map == MapType.Dust ? "Dust2" : x.Map.ToString();
+                return $"<mspace=0.6em>{name,-9}</mspace><color={color}>{new string('█', filled)}</color><color=#FFFFFF33>{new string('█', 10 - filled)}</color> {x.Fam:F0}";
+            });
             var side = SideLabel(SideBias(p));
-            bio.text = text + $"{marker}{(pt ? "Mapas" : "Maps")}</b>: {maps}\n<b>{(pt ? "Lado forte" : "Stronger side")}</b>: {side}";
+            bio.text = text + $"{marker}{(pt ? "Mapas" : "Maps")}</b>\n{string.Join("\n", lines)}\n<b>{(pt ? "Lado forte" : "Stronger side")}</b>: {side}";
         }
         catch (Exception e)
         {

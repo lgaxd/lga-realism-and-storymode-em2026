@@ -23,6 +23,7 @@ public static class Roles
     public static void Apply(Harmony harmony)
     {
         MatchPower.Apply(harmony);
+        ManualChoices.Apply(harmony);
         MatchPower.Register("RoleBalance", Contribute);
         harmony.PatchAll(typeof(Roles));
         Plugin.Log.LogInfo("[Roles] patches applied");
@@ -47,6 +48,7 @@ public static class Roles
 
     public static (Role Primary, Role? Secondary) RolesOf(DataPlayer p)
     {
+        if (ManualChoices.TryGetRoles(p.Id, out var chosen)) return chosen; // the user's choice wins
         if (p.MainRole == PlayerMainRole.AWPer)
         {
             var best = RiflerFit(p).OrderByDescending(kv => kv.Value).First().Key;

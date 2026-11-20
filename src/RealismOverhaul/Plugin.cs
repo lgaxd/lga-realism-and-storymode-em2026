@@ -53,6 +53,9 @@ public class Plugin : BasePlugin
         if (Flags.Vrs.Value)
             Features.Vrs.Apply(harmony);
 
+        if (Flags.DumpUi.Value)
+            Infrastructure.UiDump.Apply(harmony);
+
         Log.LogInfo($"{Name} loaded");
     }
 }
