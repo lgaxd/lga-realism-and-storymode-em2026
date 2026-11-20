@@ -85,6 +85,12 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> Vrs { get; } = config.Bind("Features", "VRS", true,
         "Valve Regional Standings decide who is invited to tournaments, by Region quota (blended with the game's ERS until 6 months of history exist).");
 
+    public ConfigEntry<bool> ProfileUi { get; } = config.Bind("Features", "ProfileUi", true,
+        "Player profile: Role selector under 'Player roles', and a Maps/Radar toggle with Map Familiarity bars.");
+
+    public ConfigEntry<bool> CtPositionsUi { get; } = config.Bind("Features", "CtPositionsUi", true,
+        "Map training screen: set your Main Roster's CT Positions per map.");
+
     public ConfigEntry<bool> BackgroundThrottle { get; } = config.Bind("Performance", "BackgroundThrottle", true,
         "Lower the frame rate while the game is unfocused or minimized, to cut CPU/GPU load and heat.");
 

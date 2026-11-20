@@ -222,9 +222,12 @@ public static class MapFamiliarity
 
     /// CT Positions on a map, assigned by Role: the AWPer takes the AWP spot, Anchors and Supports
     /// hold the sites, Lurkers the mid/connector areas, Entries and Traders the remaining spots.
+    public static string[] PositionsOf(MapType map) =>
+        CtPositions.TryGetValue(map, out var p) ? p : new[] { "AWP", "A-site", "B-site", "Mid", "Connector" };
+
     public static List<(string Position, DataPlayer Player)> AssignCtPositions(IList<DataPlayer> five, MapType map)
     {
-        var positions = CtPositions.TryGetValue(map, out var p) ? p : new[] { "AWP", "A-site", "B-site", "Mid", "Connector" };
+        var positions = PositionsOf(map);
         int Preference(Role r, int slot) => (r, slot) switch
         {
             (Role.AWPer, 0) => 0,
@@ -358,6 +361,7 @@ public static class MapFamiliarity
             var p = user?.TryCast<DataPlayer>();
             var bio = __instance._biography;
             if (p == null || bio == null || p.Retired) return;
+            if (Plugin.Flags.ProfileUi.Value) return; // the profile's Maps panel shows them instead
             const string marker = "\n\n<b>";
             var text = bio.text ?? "";
             var cut = text.IndexOf(marker + "Mapas", StringComparison.Ordinal);

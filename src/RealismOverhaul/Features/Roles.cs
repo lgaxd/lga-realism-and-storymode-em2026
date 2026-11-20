@@ -46,9 +46,13 @@ public static class Roles
         [Role.Lurker] = A(p, AttributeType.Creativity) + 0.8f * A(p, AttributeType.Clutch) + 0.6f * A(p, AttributeType.Skill),
     };
 
-    public static (Role Primary, Role? Secondary) RolesOf(DataPlayer p)
+    /// The player's Roles: the user's choice if any, otherwise derived.
+    public static (Role Primary, Role? Secondary) RolesOf(DataPlayer p) =>
+        ManualChoices.TryGetRoles(p.Id, out var chosen) ? chosen : DerivedRolesOf(p);
+
+    /// The Roles derived from the game's role and the player's attributes.
+    public static (Role Primary, Role? Secondary) DerivedRolesOf(DataPlayer p)
     {
-        if (ManualChoices.TryGetRoles(p.Id, out var chosen)) return chosen; // the user's choice wins
         if (p.MainRole == PlayerMainRole.AWPer)
         {
             var best = RiflerFit(p).OrderByDescending(kv => kv.Value).First().Key;
@@ -137,11 +141,13 @@ public static class Roles
 
     [HarmonyPatch(typeof(PlayerOverview), nameof(PlayerOverview.Renew))]
     [HarmonyPostfix]
-    static void PlayerOverviewRenewPostfix(PlayerOverview __instance, DataUser user)
+    static void PlayerOverviewRenewPostfix(PlayerOverview __instance, DataUser user) => RenderRoleText(__instance, user?.TryCast<DataPlayer>());
+
+    /// Appends the Role to the profile header's role text ("Rifler · Entry / Trader").
+    public static void RenderRoleText(PlayerOverview __instance, DataPlayer? p)
     {
         try
         {
-            var p = user?.TryCast<DataPlayer>();
             var text = __instance._roleTxt;
             if (p == null || text == null) return;
             var (primary, secondary) = RolesOf(p);

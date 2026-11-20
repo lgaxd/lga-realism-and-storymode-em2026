@@ -53,6 +53,11 @@ public class Plugin : BasePlugin
         if (Flags.Vrs.Value)
             Features.Vrs.Apply(harmony);
 
+        if (Flags.ProfileUi.Value)
+            Features.ProfileUi.Apply(harmony);
+        if (Flags.CtPositionsUi.Value)
+            Features.CtPositionsUi.Apply(harmony);
+
         if (Flags.DumpUi.Value)
             Infrastructure.UiDump.Apply(harmony);
 
