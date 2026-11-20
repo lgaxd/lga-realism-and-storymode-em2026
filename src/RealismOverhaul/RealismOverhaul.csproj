@@ -25,6 +25,7 @@
     <Reference Include="$(GameDir)\BepInEx\interop\Unity.TextMeshPro.dll" Private="false" />
     <Reference Include="$(GameDir)\BepInEx\interop\Unity.Localization.dll" Private="false" />
     <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.TextCoreFontEngineModule.dll" Private="false" />
   </ItemGroup>
   <Target Name="Deploy" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
