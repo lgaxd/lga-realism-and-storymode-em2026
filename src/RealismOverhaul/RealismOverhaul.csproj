@@ -24,8 +24,11 @@
     <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.UI.dll" Private="false" />
     <Reference Include="$(GameDir)\BepInEx\interop\Unity.TextMeshPro.dll" Private="false" />
     <Reference Include="$(GameDir)\BepInEx\interop\Unity.Localization.dll" Private="false" />
+    <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="$(GameDir)\BepInEx\interop\UnityEngine.TextCoreFontEngineModule.dll" Private="false" />
   </ItemGroup>
   <Target Name="Deploy" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\RealismOverhaul" />
+    <Copy SourceFiles="..\..\data\story\eras.json;..\..\data\story\game_updates.json" DestinationFolder="$(GameDir)\BepInEx\plugins\RealismOverhaul\data" />
   </Target>
 </Project>

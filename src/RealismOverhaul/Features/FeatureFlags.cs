@@ -107,6 +107,9 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> DumpUi { get; } = config.Bind("Diagnostics", "DumpUi", true,
         "Write the layout of the profile, squad and map training screens to BepInEx/RealismOverhaul-ui-dump.txt (once per screen per session).");
 
+    public ConfigEntry<string> ForceEra { get; } = config.Bind("Diagnostics", "ForceEra", "",
+        "Preview a Story Mode Era Theme in any career: lan_party, golden_age, global_offensive, esports_boom or cs2. Empty = off.");
+
     public ConfigEntry<bool> UiCensus { get; } = config.Bind("Diagnostics", "UiCensus", false,
         "Record the colours, sprites and fonts the game's UI uses to BepInEx/RealismOverhaul-ui-census.txt while you browse (for Story Mode's Era Themes).");
 
