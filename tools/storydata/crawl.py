@@ -95,19 +95,48 @@ def main() -> None:
     queue = [tuple(x) for x in state["queue"]]
     heapq.heapify(queue)
     seen = set(state["seen"])
+
+    # Everything the Archive holds goes in at the lowest priority, so pages the link graph
+    # never reaches (e.g. tournaments after the archived tier lists stop, in 2019) are still
+    # collected once the data-driven queue is exhausted.
+    urls = archive.CACHE / "urls.jsonl"
+    if urls.exists() and not state.get("seeded_all"):
+        added = 0
+        for line in urls.read_text(encoding="utf-8").splitlines():
+            t = json.loads(line)["title"]
+            if t not in seen and not SKIP.search(t):
+                seen.add(t)
+                state["counter"] += 1
+                heapq.heappush(queue, (9, state["counter"], t, "any"))
+                added += 1
+        state["seeded_all"] = True
+        print(f"queued {added} enumerated pages at the lowest priority", flush=True)
     outputs = {k: (RECORDS / f"{k}.jsonl").open("a", encoding="utf-8") for k in ("tournament", "team", "player")}
     fetched = 0
     started = time.time()
     try:
         while queue and (not args.max or fetched < args.max):
             prio, _, title, expected = heapq.heappop(queue)
-            p = archive.page(page_url(title))
+            try:
+                p = archive.page(page_url(title))
+            except archive.FetchFailed as e:
+                # Never let one page stop the crawl: retry it later, give up after 3 failures.
+                failures = state.setdefault("failures", {})
+                failures[title] = failures.get(title, 0) + 1
+                if failures[title] < 3:
+                    state["counter"] += 1
+                    heapq.heappush(queue, (prio + 10, state["counter"], title, expected))
+                print(f"  fetch failed ({failures[title]}x): {e}", flush=True)
+                continue
+            except Exception as e:
+                print(f"  unexpected error on {title}: {e}", flush=True)
+                continue
             fetched += 1
             state["done"] += 1
             if p is None:
                 continue
             record = None
-            if expected != "seed":
+            if expected != "seed":  # "any" pages are parsed as whatever they turn out to be
                 try:
                     record = parse.parse(p["html"])
                 except Exception as e:  # a malformed page must not stop the crawl

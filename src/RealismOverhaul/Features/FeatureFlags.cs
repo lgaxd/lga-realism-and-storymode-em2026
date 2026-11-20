@@ -110,6 +110,9 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> ExportDefaultDatabase { get; } = config.Bind("Diagnostics", "ExportDefaultDatabase", true,
         "Export the game's default database tables (CSV) to BepInEx/RealismOverhaul-emdb once, for Story Mode. Turns itself off.");
 
+    public ConfigEntry<string> ExportExtraDatabases { get; } = config.Bind("Diagnostics", "ExportExtraDatabases", "",
+        "Extra .emdb files to export alongside the default database (full paths, separated by ';').");
+
     public ConfigEntry<bool> ClassInjectionSelfTest { get; } = config.Bind("Diagnostics", "ClassInjectionSelfTest", true,
         "At startup, check that class injection and delegate conversion work (needed for custom UI).");
 }

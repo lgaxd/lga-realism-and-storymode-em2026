@@ -17,7 +17,7 @@ import requests
 
 USER_AGENT = "EM2026-StoryMode-data/0.1 (personal non-commercial game mod; reads Internet Archive copies)"
 CACHE = Path(__file__).parent / "cache"
-MIN_INTERVAL = 1.1  # seconds between requests to the Archive
+MIN_INTERVAL = 1.5  # seconds between requests to the Archive
 
 _session = requests.Session()
 _session.headers.update({"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
@@ -32,20 +32,31 @@ def _wait() -> None:
     _last = time.monotonic()
 
 
-def get(url: str, *, params: dict | None = None, retries: int = 6) -> requests.Response:
-    """GET with rate limiting and exponential backoff on throttling / server errors."""
+class FetchFailed(RuntimeError):
+    """The Archive kept failing for one URL; the caller decides whether to retry later."""
+
+
+def get(url: str, *, params: dict | None = None, retries: int = 5) -> requests.Response:
+    """GET with rate limiting; backs off on throttling (429, honouring Retry-After) and server errors."""
+    last = "no response"
     for attempt in range(retries):
         _wait()
         try:
-            r = _session.get(url, params=params, timeout=60)
-        except requests.RequestException:
-            r = None
-        if r is not None and r.status_code == 200:
-            return r
-        if r is not None and r.status_code == 404:
-            r.raise_for_status()
-        time.sleep(min(300, 5 * 2 ** attempt))  # 429 / 5xx / network: back off
-    raise RuntimeError(f"giving up on {url} after {retries} attempts")
+            r = _session.get(url, params=params, timeout=90)
+        except requests.RequestException as e:
+            r, last = None, type(e).__name__
+        if r is not None:
+            if r.status_code == 200:
+                return r
+            if r.status_code in (403, 404):
+                r.raise_for_status()  # permanent for this URL: no point retrying
+            last = f"HTTP {r.status_code}"
+            if r.status_code == 429:
+                wait = int(r.headers.get("Retry-After", "0") or 0)
+                time.sleep(max(60, wait))
+                continue
+        time.sleep(min(120, 5 * 2 ** attempt))
+    raise FetchFailed(f"{url}: {last} after {retries} attempts")
 
 
 def _cache_path(kind: str, key: str) -> Path:
@@ -66,9 +77,21 @@ def page(original_url: str, *, before: str = "2026") -> dict | None:
     try:
         r = get(snapshot)
     except requests.HTTPError:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("{}", encoding="utf-8")
-        return None
+        # The capture nearest to `before` can be an archived error (Liquipedia refused the
+        # Archive's crawler: 403). Fall back to the latest successful capture.
+        r = None
+        rows = cdx({"url": original_url, "filter": "statuscode:200", "fl": "timestamp",
+                    "to": before, "limit": "-1"})
+        stamps = [row[0] for row in rows[1:] if row] if rows else []
+        if stamps:
+            try:
+                r = get(f"https://web.archive.org/web/{stamps[-1]}id_/{original_url}")
+            except requests.HTTPError:
+                r = None
+        if r is None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}", encoding="utf-8")
+            return None
     raw = r.content
     # id_ returns the bytes as captured; many captures are themselves gzip-encoded.
     if raw[:2] == b"\x1f\x8b":

@@ -11,25 +11,37 @@ public static class EmdbExport
 {
     public static void Run()
     {
-        try
+        var sources = new List<(string Path, string Folder)>
         {
-            var source = Path.Combine(Application.streamingAssetsPath, "default.emdb");
-            var outDir = Path.Combine(BepInEx.Paths.BepInExRootPath, "RealismOverhaul-emdb");
-            Directory.CreateDirectory(outDir);
-            var tables = EmdbExtractor.ExtractEmdbToMemory(source);
-            var count = 0;
-            foreach (var key in tables.Keys)
+            (System.IO.Path.Combine(Application.streamingAssetsPath, "default.emdb"), "RealismOverhaul-emdb"),
+        };
+        // Extra databases (e.g. a community .emdb with real names, for calibration).
+        foreach (var extra in Plugin.Flags.ExportExtraDatabases.Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            sources.Add((extra, "RealismOverhaul-emdb-" + System.IO.Path.GetFileNameWithoutExtension(extra)));
+
+        var ok = true;
+        foreach (var (source, folder) in sources)
+        {
+            try
             {
-                var name = string.Concat(key.Split(Path.GetInvalidFileNameChars()));
-                File.WriteAllText(Path.Combine(outDir, name), tables[key]);
-                count++;
+                var outDir = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, folder);
+                Directory.CreateDirectory(outDir);
+                var tables = EmdbExtractor.ExtractEmdbToMemory(source);
+                var count = 0;
+                foreach (var key in tables.Keys)
+                {
+                    var name = string.Concat(key.Split(System.IO.Path.GetInvalidFileNameChars()));
+                    File.WriteAllText(System.IO.Path.Combine(outDir, name), tables[key]);
+                    count++;
+                }
+                Plugin.Log.LogInfo($"[EmdbExport] exported {count} tables from {source} to {outDir}");
             }
-            Plugin.Log.LogInfo($"[EmdbExport] exported {count} tables from {source} to {outDir}");
-            Plugin.Flags.ExportDefaultDatabase.Value = false; // one shot
+            catch (Exception e)
+            {
+                ok = false;
+                Plugin.Log.LogError($"[EmdbExport] {source} failed: {e.Message}");
+            }
         }
-        catch (Exception e)
-        {
-            Plugin.Log.LogError($"[EmdbExport] failed: {e}");
-        }
+        if (ok) Plugin.Flags.ExportDefaultDatabase.Value = false; // one shot
     }
 }
