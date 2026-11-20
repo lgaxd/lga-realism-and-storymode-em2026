@@ -153,6 +153,8 @@ static class EraPainter
     {
         var id = g.GetInstanceID();
         var current = g.color;
+        // The loading screen reuses one image with a new map picture each time: checked every sweep.
+        if (g.name == "bgImg" && g.TryCast<Image>() is { } loading) return EraLoadingScreen(loading);
         if (Applied.TryGetValue(id, out var done) && done == current) return false;
         var image = g.TryCast<Image>();
         if (image == null)
@@ -185,6 +187,28 @@ static class EraPainter
             return false;
         }
         Applied[id] = image.color;
+        return true;
+    }
+
+    static List<Sprite>? _loadingSprites;
+
+    /// Loading screens show map pictures ("loading_anubis01"); only maps of the Era may appear.
+    static bool EraLoadingScreen(Image image)
+    {
+        var maps = Era!.Maps;
+        var name = image.sprite != null ? image.sprite.name : "";
+        if (maps == null || !name.StartsWith("loading_", StringComparison.Ordinal) || maps.Any(m => name.StartsWith("loading_" + m, StringComparison.Ordinal)))
+            return false;
+        _loadingSprites ??= Resources.FindObjectsOfTypeAll<Sprite>()
+            .Where(s => s != null && s.name.StartsWith("loading_", StringComparison.Ordinal))
+            .GroupBy(s => s.name).Select(g => g.First()).ToList();
+        var allowed = _loadingSprites.Where(s => maps.Any(m => s.name.StartsWith("loading_" + m, StringComparison.Ordinal))).ToList();
+        if (allowed.Count == 0)
+        {
+            Plugin.Log.LogInfo($"[EraTheme] no loading picture of an {Era.Name} map in memory (have: {string.Join(", ", _loadingSprites.Select(s => s.name))})");
+            return false;
+        }
+        image.sprite = allowed[UnityEngine.Random.Range(0, allowed.Count)];
         return true;
     }
 

@@ -12,6 +12,8 @@ public sealed class Era
     [JsonPropertyName("from")] public string From { get; set; } = "";
     [JsonPropertyName("to")] public string? To { get; set; }
     [JsonPropertyName("theme")] public EraThemeData Theme { get; set; } = new();
+    /// Game maps that existed in this Era (lower case: "dust", "nuke"...); null = all of them.
+    [JsonPropertyName("maps")] public List<string>? Maps { get; set; }
 }
 
 /// The look of an Era. A null palette means "the game's own look" (the present day).

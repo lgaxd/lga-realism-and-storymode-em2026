@@ -1,5 +1,5 @@
 {
-  "about": "Story Mode Eras (ADR 0005, GLOSSARY: Era, Era Theme, Org Upgrade). DRAFT. 'theme.palette' maps palette roles to colours; the roles are bound to the game's own colours after the UI colour census. Dates of Org Upgrades are when history makes them possible; 'basis' says why that date. Money values are multipliers on the game's 2026 economy.",
+  "about": "Story Mode Eras (ADR 0005, GLOSSARY: Era, Era Theme, Org Upgrade). DRAFT. 'theme.palette' maps palette roles to colours; the roles are bound to the game's own colours after the UI colour census. Dates of Org Upgrades are when history makes them possible; 'basis' says why that date. Money values are multipliers on the game's 2026 economy. 'maps' lists the game maps that existed in the Era (loading screens only show these; null = all).",
   "palette_roles": [
     "background",
     "panel",
@@ -54,7 +54,13 @@
         "max_staff": [
           "Coach"
         ]
-      }
+      },
+      "maps": [
+        "dust",
+        "inferno",
+        "nuke",
+        "train"
+      ]
     },
     {
       "id": "golden_age",
@@ -96,7 +102,13 @@
           "CEO",
           "PR Manager"
         ]
-      }
+      },
+      "maps": [
+        "dust",
+        "inferno",
+        "nuke",
+        "train"
+      ]
     },
     {
       "id": "global_offensive",
@@ -140,7 +152,16 @@
           "Analyst",
           "Event Manager"
         ]
-      }
+      },
+      "maps": [
+        "dust",
+        "inferno",
+        "mirage",
+        "nuke",
+        "train",
+        "cache",
+        "overpass"
+      ]
     },
     {
       "id": "esports_boom",
@@ -178,7 +199,17 @@
         "news_style": "social",
         "default_match": "MR15",
         "max_staff": "all"
-      }
+      },
+      "maps": [
+        "dust",
+        "inferno",
+        "mirage",
+        "nuke",
+        "train",
+        "cache",
+        "overpass",
+        "ancient"
+      ]
     },
     {
       "id": "cs2",
@@ -202,7 +233,8 @@
         "news_style": "social",
         "default_match": "MR12",
         "max_staff": "all"
-      }
+      },
+      "maps": null
     }
   ],
   "org_upgrades": [
