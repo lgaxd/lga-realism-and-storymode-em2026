@@ -132,6 +132,13 @@ def _results(soup: BeautifulSoup) -> list[dict]:
     return results
 
 
+def _logo(soup: BeautifulSoup) -> str | None:
+    """The team logo in the infobox (the dark-mode version suits the game's dark UI)."""
+    imgs = [i.get("src") for i in soup.select(".infobox-image img") if i.get("src")]
+    dark = [s for s in imgs if "darkmode" in s]
+    return (dark or imgs or [None])[0]
+
+
 def parse_team(soup: BeautifulSoup) -> dict:
     ib = infobox(soup)
     name = clean(soup.select_one("h1").get_text(" ")) if soup.select_one("h1") else ""
@@ -170,7 +177,7 @@ def parse_team(soup: BeautifulSoup) -> dict:
     return {
         "kind": "team", "name": name, "location": ib.get("Location"), "region": ib.get("Region"),
         "created": created, "disbanded": disbanded, "winnings": money(ib.get("Approx. Total Winnings")),
-        "igl": ib.get("In-Game Leader"), "coaches": ib.get("Coaches"),
+        "igl": ib.get("In-Game Leader"), "coaches": ib.get("Coaches"), "logo": _logo(soup),
         "members": members, "staff": staff, "results": _results(soup),
     }
 

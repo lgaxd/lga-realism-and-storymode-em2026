@@ -104,6 +104,25 @@ def page(original_url: str, *, before: str = "2026") -> dict | None:
     return data
 
 
+def binary(original_url: str) -> bytes | None:
+    """An archived file (an image) as bytes: the latest successful capture. Cached on disk."""
+    path = _cache_path("files", original_url).with_suffix(".bin")
+    if path.exists():
+        data = path.read_bytes()
+        return data or None
+    rows = cdx({"url": original_url, "filter": "statuscode:200", "fl": "timestamp", "limit": "-1"})
+    stamps = [row[0] for row in rows[1:] if row] if rows else []
+    data = b""
+    if stamps:
+        try:
+            data = get(f"https://web.archive.org/web/{stamps[-1]}id_/{original_url}").content
+        except requests.HTTPError:
+            data = b""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return data or None
+
+
 def cdx(params: dict) -> list[list[str]]:
     """One CDX query (JSON output, first row is the header)."""
     r = get("https://web.archive.org/cdx/search/cdx", params={**params, "output": "json"})

@@ -372,9 +372,11 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
     # Team nicks (the reference's short names where the team is known).
     nick_of, used = {}, set()
     for t in sorted(teams, key=lambda t: -team_raw[t]):
-        n = ref.team_nick.get(t.lower()) or short_team(t)
-        while n in used:
-            n += "*"
+        n = base = ref.team_nick.get(t.lower()) or short_team(t)
+        k = 1
+        while n in used:  # the game names image files after nicks: no symbols
+            k += 1
+            n = f"{base} {k}"
         used.add(n)
         nick_of[t] = n
 
@@ -443,14 +445,22 @@ def _player_row(player: str, team: str, skill: int, ref: Reference, arc: Archive
     row["Skill"] = skill
     row["Potential"] = min(20, skill + max(0, 23 - age) // 2) if age < 23 else skill
     row["Country"] = info.get("country") or row.get("Country") or ""
-    while nick in used:
-        nick += "*"
-    used.add(nick)
+    nick = unique(nick, used)
     row.update({"Nick": nick, "Team": team_nick, "Retired": "", "Earnings": 0, "Id": nick,
                 "Role1": roles[0] if roles else row.get("Role1", "Rifler"),
                 "Role2": roles[1] if len(roles) > 1 else "", "Role3": roles[2] if len(roles) > 2 else "",
                 "CreatedBy": "StoryMode", "CreatedAt": ""})
     return row
+
+
+def unique(nick: str, used: set) -> str:
+    """Nicks name the game's image files, so duplicates get a number, never a symbol."""
+    out, k = nick, 1
+    while out.lower() in used:
+        k += 1
+        out = f"{nick}{k}"
+    used.add(out.lower())
+    return out
 
 
 def _age(birth: str, at: dt.date) -> int:
@@ -475,10 +485,7 @@ def _generated_player(team: str, i: int, rating: int, ref: Reference, team_nick:
     seed = f"{team}#{i}"
     skill = max(1, min(20, rating - 2 + stable(seed) % 3))
     row = dict(ref.donor(skill, "Rifler", seed))
-    nick = f"{team_nick[:6]}_{i + 1}"
-    while nick in used:
-        nick += "*"
-    used.add(nick)
+    nick = unique(f"{team_nick[:6]}_{i + 1}", used)
     row.update({"Nick": nick, "Name": "", "Surname": "", "Team": team_nick, "Skill": skill, "Potential": skill,
                 "Bio": "", "Id": nick, "HLTV": "", "Liquipedia": "", "Faceit": "", "PhotoUrl": "", "Retired": "",
                 "Earnings": 0, "Role1": "Rifler", "Role2": "", "Role3": "",
