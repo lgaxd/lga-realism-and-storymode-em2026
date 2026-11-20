@@ -1,0 +1,71 @@
+{
+  "about": "Story Mode Eras (ADR 0005, GLOSSARY: Era, Era Theme, Org Upgrade). DRAFT. 'theme.palette' maps palette roles to colours; the roles are bound to the game's own colours after the UI colour census. Dates of Org Upgrades are when history makes them possible; 'basis' says why that date. Money values are multipliers on the game's 2026 economy.",
+  "palette_roles": ["background", "panel", "panel_alt", "header", "accent", "accent_text", "text", "text_dim", "positive", "negative", "button", "button_hover", "border"],
+  "eras": [
+    {
+      "id": "lan_party", "name": "LAN Party", "from": "2000-01-01", "to": "2003-09-12",
+      "summary": "CS 1.0-1.5. Clans, LAN bags and IRC; prize money is the main income, and sponsors give hardware.",
+      "theme": {
+        "style": "bevel", "font": "Tahoma", "font_title": "Verdana", "corner_radius": 0, "texture": "bevel_grey",
+        "palette": {"background": "#3A3F44", "panel": "#C0C0C0", "panel_alt": "#A8A8A8", "header": "#0A246A", "accent": "#D4A017", "accent_text": "#000000", "text": "#000000", "text_dim": "#404040", "positive": "#007F0E", "negative": "#B00000", "button": "#D4D0C8", "button_hover": "#E8E4DC", "border": "#808080"}
+      },
+      "rules": {"money_scale": 0.03, "salary_scale": 0.02, "buyouts": "none", "stats_precision": "rough", "news_style": "forum", "default_match": "MR15", "max_staff": ["Coach"]}
+    },
+    {
+      "id": "golden_age", "name": "1.6 Golden Age", "from": "2003-09-12", "to": "2012-08-21",
+      "summary": "CS 1.6 on Steam. National leagues, the first salaries, gaming houses and the first big organizations.",
+      "theme": {
+        "style": "glossy", "font": "Verdana", "font_title": "Trebuchet MS", "corner_radius": 4, "texture": "gloss_dark",
+        "palette": {"background": "#1B1E22", "panel": "#2B3036", "panel_alt": "#353B42", "header": "#4A5560", "accent": "#7FB800", "accent_text": "#0B0B0B", "text": "#E6E6E6", "text_dim": "#9AA3AB", "positive": "#7FB800", "negative": "#D9534F", "button": "#3C444C", "button_hover": "#4A545E", "border": "#11151A"}
+      },
+      "rules": {"money_scale": 0.08, "salary_scale": 0.06, "buyouts": "rare", "stats_precision": "rough_until_2010", "news_style": "forum", "default_match": "MR15", "max_staff": ["Coach", "CEO", "PR Manager"]}
+    },
+    {
+      "id": "global_offensive", "name": "Global Offensive", "from": "2012-08-21", "to": "2016-03-29",
+      "summary": "CS:GO arrives, streaming takes off, skins bring money in. The first million-dollar leagues.",
+      "theme": {
+        "style": "flat", "font": "Segoe UI", "font_title": "Segoe UI Semibold", "corner_radius": 2, "texture": "flat_dark",
+        "palette": {"background": "#14171B", "panel": "#1F242A", "panel_alt": "#262C33", "header": "#2E353D", "accent": "#E8A33D", "accent_text": "#14171B", "text": "#ECEFF1", "text_dim": "#8F9AA5", "positive": "#5CB85C", "negative": "#D9534F", "button": "#2A3138", "button_hover": "#353E47", "border": "#0E1114"}
+      },
+      "rules": {"money_scale": 0.3, "salary_scale": 0.25, "buyouts": "rare", "stats_precision": "full", "news_style": "social", "default_match": "MR15", "max_staff": ["Coach", "CEO", "PR Manager", "Analyst", "Event Manager"]}
+    },
+    {
+      "id": "esports_boom", "name": "Esports Boom", "from": "2016-03-29", "to": "2023-09-27",
+      "summary": "Million-dollar Majors, franchised leagues, buyouts, analysts and psychologists. Then the online years.",
+      "theme": {
+        "style": "flat", "font": "Segoe UI", "font_title": "Bahnschrift", "corner_radius": 6, "texture": "flat_navy",
+        "palette": {"background": "#0F1420", "panel": "#182033", "panel_alt": "#1E2840", "header": "#24304C", "accent": "#3FA9F5", "accent_text": "#0F1420", "text": "#EEF2F8", "text_dim": "#8B97AD", "positive": "#3DDC97", "negative": "#FF5C6C", "button": "#202B44", "button_hover": "#2A3756", "border": "#0A0E17"}
+      },
+      "rules": {"money_scale": 0.75, "salary_scale": 0.7, "buyouts": "normal", "stats_precision": "full", "news_style": "social", "default_match": "MR15", "max_staff": "all"}
+    },
+    {
+      "id": "cs2", "name": "CS2", "from": "2023-09-27", "to": null,
+      "summary": "Source 2, MR12, the open circuit and Valve's rankings. Today's game.",
+      "theme": {
+        "style": "glass", "font": null, "font_title": null, "corner_radius": 10, "texture": null,
+        "palette": null
+      },
+      "rules": {"money_scale": 1.0, "salary_scale": 1.0, "buyouts": "normal", "stats_precision": "full", "news_style": "social", "default_match": "MR12", "max_staff": "all"}
+    }
+  ],
+  "org_upgrades": [
+    {"id": "clan_website", "name": "Clan website and forum", "available": "2000-01-01", "cost": 500, "upkeep": 50, "effects": {"fans": 1.05}, "basis": "clans ran their own sites and forums"},
+    {"id": "hardware_sponsor", "name": "Hardware sponsorship desk", "available": "2000-01-01", "cost": 1000, "upkeep": 0, "effects": {"sponsor_types": ["Hardware"]}, "basis": "early sponsors paid in peripherals and PCs"},
+    {"id": "team_manager", "name": "Full-time team manager", "available": "2002-01-01", "cost": 5000, "upkeep": 1500, "effects": {"travel_fatigue": 0.9, "tournament_slots": 1}, "basis": "SK Gaming and others professionalised management in the early 2000s"},
+    {"id": "player_salaries", "name": "Player salaries", "available": "2003-09-12", "cost": 0, "upkeep": 0, "effects": {"loyalty": 1.15, "poaching_resistance": 1.2}, "basis": "top 1.6 teams started paying monthly salaries"},
+    {"id": "gaming_house", "name": "Gaming house", "available": "2008-01-01", "cost": 40000, "upkeep": 4000, "effects": {"teamwork_growth": 1.15, "map_familiarity_growth": 1.1, "stress": 1.05}, "basis": "teams started living and practising together"},
+    {"id": "bootcamps", "name": "Bootcamp trips", "available": "2008-01-01", "cost": 0, "upkeep": 0, "per_use": 8000, "effects": {"form_before_event": 1.1}, "basis": "pre-event bootcamps became standard"},
+    {"id": "hltv_stats", "name": "Statistics subscription", "available": "2010-01-01", "cost": 2000, "upkeep": 200, "effects": {"scouting_precision": "full"}, "basis": "HLTV Rating 1.0 (2010)"},
+    {"id": "streaming", "name": "Streaming deals", "available": "2011-06-06", "cost": 5000, "upkeep": 500, "effects": {"income_per_fan": 1.2}, "basis": "Twitch launched in June 2011"},
+    {"id": "social_media_team", "name": "Social media team", "available": "2012-01-01", "cost": 10000, "upkeep": 2500, "effects": {"fans": 1.15, "sponsor_interest": 1.1}, "basis": "orgs professionalised social media in the CS:GO era"},
+    {"id": "analyst", "name": "Analyst", "available": "2014-01-01", "cost": 0, "upkeep": 0, "effects": {"staff_roles": ["Analyst"]}, "basis": "dedicated analysts appear in CS:GO"},
+    {"id": "skin_sponsors", "name": "Skin and betting sponsors", "available": "2015-01-01", "cost": 0, "upkeep": 0, "effects": {"sponsor_types": ["Betting"]}, "basis": "the skin economy after Arms Deal (2013) brought skin and betting sponsors"},
+    {"id": "buyout_clauses", "name": "Buyout clauses", "available": "2015-07-01", "cost": 0, "upkeep": 0, "effects": {"buyouts": true}, "basis": "contracts with buyouts became the norm with the investment boom"},
+    {"id": "training_facility", "name": "Training facility", "available": "2016-06-01", "cost": 250000, "upkeep": 15000, "effects": {"training_efficiency": 1.2, "stress": 0.95}, "basis": "big orgs opened dedicated facilities in the boom years"},
+    {"id": "psychologist", "name": "Sports psychologist", "available": "2016-06-01", "cost": 0, "upkeep": 0, "effects": {"staff_roles": ["Psychologist"]}, "basis": "performance staff spread after Astralis' success"},
+    {"id": "performance_staff", "name": "Physio and performance coach", "available": "2018-01-01", "cost": 0, "upkeep": 0, "effects": {"staff_roles": ["Physiotherapist"]}, "basis": "physical preparation became standard"},
+    {"id": "content_creators", "name": "Content creators", "available": "2018-01-01", "cost": 20000, "upkeep": 6000, "effects": {"fans": 1.2, "merch_income": 1.3}, "basis": "orgs signed streamers and creators"},
+    {"id": "academy", "name": "Academy team", "available": "2016-01-01", "cost": 30000, "upkeep": 8000, "effects": {"academy": true}, "basis": "academy rosters spread in the late 2010s"},
+    {"id": "crypto_sponsors", "name": "Crypto sponsors", "available": "2021-01-01", "cost": 0, "upkeep": 0, "effects": {"sponsor_types": ["Crypto"]}, "basis": "the 2021 crypto sponsorship wave"}
+  ]
+}

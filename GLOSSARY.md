@@ -137,3 +137,15 @@ _Avoid_: HLTV ranking, world ranking
 **Permanent Leave**:
 A player leaving professional play for good, for injury or personal reasons, as a rare random event. Death is never a random outcome; it only appears as a Historical Fact.
 _Avoid_: death, random death, forced retirement
+
+**Era**:
+One of the five periods of Story Mode history (LAN Party, 1.6 Golden Age, Global Offensive, Esports Boom, CS2). The Era decides how the game looks and which Org Upgrades exist.
+_Avoid_: age, period, epoch, version (a Game Update is a version change; an Era can span several)
+
+**Era Theme**:
+The look of an Era: its colour palette, fonts and panel textures. It recolours the game's own palette and never changes layouts or meaningful colours (team colours, ratings).
+_Avoid_: skin, reskin, mode
+
+**Org Upgrade**:
+Something an organization can adopt once history makes it possible, such as an analyst, a gaming house or a media team, and must pay for. It changes what the organization can do or how well it does it.
+_Avoid_: unlock, research, perk, tech

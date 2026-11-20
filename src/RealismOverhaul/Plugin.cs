@@ -64,6 +64,9 @@ public class Plugin : BasePlugin
         if (Flags.ExportDefaultDatabase.Value)
             Infrastructure.EmdbExport.Run();
 
+        if (Flags.UiCensus.Value)
+            Infrastructure.UiCensus.Start();
+
         if (Flags.DumpUi.Value)
             Infrastructure.UiDump.Apply(harmony);
 
