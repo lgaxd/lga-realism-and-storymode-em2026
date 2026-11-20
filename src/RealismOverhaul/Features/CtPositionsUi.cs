@@ -12,7 +12,24 @@ namespace RealismOverhaul.Features;
 public static class CtPositionsUi
 {
     const string BlockName = "RealismOverhaul.CtPositions";
-    const float RowH = 30f;
+    const float RowH = 23f;
+    const float TitleArea = 108f; // map name and pick/ban badges at the top of the column
+
+    // Short labels: the columns are ~150 px wide.
+    static string Short(string position) => position switch
+    {
+        "A-site" => "A", "B-site" => "B", "B-site (Ramp)" => "Ramp", "Connector" => "Con", "Apartments" => "Apps",
+        "Arch/Mid" => "Mid", "Outside" => "Out", "Secret" => "Sec", "Highway" => "Hwy", "Popdog" => "Pop",
+        _ => position,
+    };
+
+    /// The column's regular body font (the info texts at the bottom), not the condensed title font.
+    static TMP_Text? BodyStyle(Transform column)
+    {
+        var info = column.Find("infoGo");
+        var t = info?.GetComponentInChildren<TMP_Text>(true);
+        return t ?? column.Find("mapNameTxt")?.GetComponent<TMP_Text>();
+    }
 
     public static void Apply(Harmony harmony)
     {
@@ -47,8 +64,9 @@ public static class CtPositionsUi
 
     static void BuildColumn(Transform column)
     {
-        var nameText = column.Find("mapNameTxt")?.GetComponent<TMP_Text>();
-        if (nameText == null || !Enum.TryParse<MapType>(nameText.text?.Trim(), true, out var map)) return;
+        var mapName = column.Find("mapNameTxt")?.GetComponent<TMP_Text>();
+        if (mapName == null || !Enum.TryParse<MapType>(mapName.text?.Trim(), true, out var map)) return;
+        var nameText = BodyStyle(column)!;
         var old = column.Find(BlockName);
         if (old != null) UnityEngine.Object.Destroy(old.gameObject);
 
@@ -62,18 +80,19 @@ public static class CtPositionsUi
         var setup = MapFamiliarity.AssignCtPositions(five, map);
         var chosen = ManualChoices.CtPositions(club.Id, map);
         var positions = MapFamiliarity.PositionsOf(map);
-        var height = RowH * (positions.Length + 1) + 12f;
+        var height = RowH * (positions.Length + 1) + 6f;
 
-        var block = UiKit.Image(column, BlockName, new Color(0f, 0f, 0f, 0.55f), new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(-16f, height));
+        // Anchored under the map name, ending above the training gauge.
+        var block = UiKit.Image(column, BlockName, new Color(0f, 0f, 0f, 0.6f), new Vector2(0f, 1f), new Vector2(1f, 1f),
+            new Vector2(0.5f, 1f), new Vector2(0f, -TitleArea), new Vector2(-16f, height));
         block.raycastTarget = true; // keep clicks on the block from selecting the map underneath
         var t = block.transform;
 
-        UiKit.Text(t, "Title", nameText, chosen == null ? (pt ? "CT (auto)" : "CT (auto)") : "CT", 14f, Color.white, TextAlignmentOptions.Left,
-            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(8f, -4f), new Vector2(90f, RowH - 4f));
+        UiKit.Text(t, "Title", nameText, chosen == null ? "<b>CT</b> (auto)" : "<b>CT</b>", 13f, Color.white, TextAlignmentOptions.Left,
+            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(8f, -2f), new Vector2(90f, RowH));
         if (chosen != null)
             UiKit.TextButton(t, "Auto", nameText, "Auto", 13f, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-6f, -5f), new Vector2(52f, RowH - 8f), () =>
+                new Vector2(-5f, -3f), new Vector2(46f, RowH - 5f), () =>
                 {
                     ManualChoices.ClearCtPositions(club.Id, map);
                     BuildColumn(column);
@@ -83,14 +102,14 @@ public static class CtPositionsUi
         for (var i = 0; i < positions.Length; i++)
         {
             var position = positions[i];
-            var y = -RowH * (i + 1) - 4f;
-            UiKit.Text(t, $"Pos{i}", nameText, position, 12f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Left,
-                new Vector2(0f, 1f), new Vector2(0.45f, 1f), new Vector2(0f, 1f), new Vector2(8f, y), new Vector2(-8f, RowH - 4f));
+            var y = -RowH * (i + 1) - 2f;
+            UiKit.Text(t, $"Pos{i}", nameText, Short(position), 13f, new Color(1f, 1f, 1f, 0.75f), TextAlignmentOptions.Left,
+                new Vector2(0f, 1f), new Vector2(0.3f, 1f), new Vector2(0f, 1f), new Vector2(8f, y), new Vector2(-8f, RowH));
             var holderPlayer = setup.FirstOrDefault(x => x.Position == position).Player;
             var index = holderPlayer == null ? 0 : names.IndexOf(holderPlayer.Id);
             var pos = position;
-            UiKit.Dropdown(template, t, $"Player{i}", names, Math.Max(0, index),
-                new Vector2(0.45f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(0f, y), new Vector2(-6f, RowH - 4f),
+            var dd = UiKit.Dropdown(template, t, $"Player{i}", names, Math.Max(0, index),
+                new Vector2(0.3f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f), new Vector2(0f, y), new Vector2(-5f, RowH - 2f),
                 picked =>
                 {
                     if (picked < 0 || picked >= five.Count) return;
@@ -100,6 +119,13 @@ public static class CtPositionsUi
                     ManualChoices.SetCtPosition(club.Id, map, pos, five[picked].Id);
                     BuildColumn(column);
                 });
+            // One line, smaller: "s1mple" must not wrap in a ~100 px field.
+            if (dd.captionText != null)
+            {
+                dd.captionText.enableWordWrapping = false;
+                dd.captionText.overflowMode = TextOverflowModes.Ellipsis;
+                dd.captionText.fontSize = 13f;
+            }
         }
     }
 }
