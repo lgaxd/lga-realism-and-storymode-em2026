@@ -60,12 +60,17 @@ static class EraPainter
     // Sprites the game uses for panels and backgrounds (recoloured; plain ones get the Era panel).
     static readonly HashSet<string> PlainPanels = new()
     {
-        "", "white", "UISprite", "Window001_White2", "EventPanel", "rounded-square", "SPR_HUD_MilitaryCombat_Shadow_Octagon_01",
+        NoSprite, "white", "UISprite", "Window001_White2", "EventPanel", "rounded-square", "SPR_HUD_MilitaryCombat_Shadow_Octagon_01",
     };
     static readonly HashSet<string> ButtonSprites = new() { "Btn08Blue_n", "Btn01Cyan_p", "Btn01Blue_p", "BgTitle_SkillButton02Orange" };
     static readonly HashSet<string> BodyFonts = new() { "mainFont" };
     static readonly HashSet<string> TitleFonts = new() { "coolvetica condensed rg SDF", "Play-Regular SDF", "coolveticaHardBlack" };
     const string BackdropName = "RealismOverhaul.EraBackdrop";
+    // Images with no sprite at all are plain panels. Downloaded pictures (player photos,
+    // tournament logos) are sprites with an empty name and must never be recoloured.
+    const string NoSprite = "(no sprite)";
+
+    static string SpriteName(Image image) => image.sprite == null ? NoSprite : image.sprite.name;
 
     static readonly Dictionary<int, Color> Applied = new();
     static TMP_FontAsset? _body, _title;
@@ -122,7 +127,7 @@ static class EraPainter
             if (canvas == null || !canvas.isRootCanvas || !Backdropped.Add(canvas.GetInstanceID())) continue;
             var path = canvas.transform.root.name + "/" + canvas.name;
             // The main windows, popups and main menu; not loading screens, tooltips or world canvases.
-            if (canvas.renderMode == RenderMode.WorldSpace || path.Contains("Persistance") || path.Contains("Tooltip")
+            if (canvas.renderMode == RenderMode.WorldSpace || path.Contains("Persistance") || path.Contains("Tooltip") || path.StartsWith("Intro")
                 || canvas.transform.Find(BackdropName) != null) continue;
             var rt = canvas.GetComponent<RectTransform>();
             if (rt == null || rt.rect.width < Screen.width * 0.5f) continue;
@@ -156,7 +161,7 @@ static class EraPainter
             return false;
         }
         var t = Era!.Theme;
-        var spriteName = image.sprite != null ? image.sprite.name : "";
+        var spriteName = SpriteName(image);
         if (ButtonSprites.Contains(spriteName))
         {
             image.sprite = _button;
@@ -270,7 +275,7 @@ static class EraPainter
         if (requireBgName && !IsPanelName(t.name)) return false;
         var image = t.GetComponent<Image>();
         if (image == null || !image.enabled || image.color.a < 0.5f) return false;
-        var spriteName = image.sprite != null ? image.sprite.name : "";
+        var spriteName = SpriteName(image);
         // Only panels whose look we know; photos and logos say nothing reliable about contrast.
         var known = PlainPanels.Contains(spriteName) || ButtonSprites.Contains(spriteName) || spriteName.StartsWith("RealismOverhaul.Era.", StringComparison.Ordinal);
         if (!known) return false;
