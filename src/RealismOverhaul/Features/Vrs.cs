@@ -60,22 +60,35 @@ public static class Vrs
 
     // --- Recording results ---
 
-    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.EndMatch), typeof(DataMatch), typeof(SeriesResult), typeof(bool))]
-    [HarmonyPostfix]
-    static void EndMatchPostfix(DataMatch match)
+    static readonly HashSet<string> _recordedToday = new();
+    static int _recordedDay = -1;
+
+    /// User matches end in EndMatch; AI matches are resolved in ProccesAIMatch. Record both, once.
+    static void Record(DataMatch? match)
     {
         try
         {
-            if (match == null || string.IsNullOrEmpty(match.Team1Id) || string.IsNullOrEmpty(match.Team2Id)) return;
+            if (match == null || !match.IsMatchOver || string.IsNullOrEmpty(match.Team1Id) || string.IsNullOrEmpty(match.Team2Id)) return;
             var winner = match.WinnerId;
             if (string.IsNullOrEmpty(winner)) return;
+            var today = Today();
+            if (today != _recordedDay) { _recordedToday.Clear(); _recordedDay = today; }
+            if (!_recordedToday.Add(MatchPower.Key(match))) return;
             var lan = false;
             if (!string.IsNullOrEmpty(match.TournamentId))
                 lan = DataTournaments.Get(match.TournamentId)?.IsLan ?? false;
-            _matches.Add(new MatchRec(Today(), match.Team1Id, match.Team2Id, winner, lan));
+            _matches.Add(new MatchRec(today, match.Team1Id, match.Team2Id, winner, lan));
         }
         catch (Exception e) { Plugin.Log.LogError($"[VRS] could not record a match: {e}"); }
     }
+
+    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.EndMatch), typeof(DataMatch), typeof(SeriesResult), typeof(bool))]
+    [HarmonyPostfix]
+    static void EndMatchPostfix(DataMatch match) => Record(match);
+
+    [HarmonyPatch(typeof(MatchesEngine), nameof(MatchesEngine.ProccesAIMatch))]
+    [HarmonyPostfix]
+    static void ProccesAIMatchPostfix(DataMatch match) => Record(match);
 
     /// The game builds a tournament's history row (final places) when it ends; record prize money.
     [HarmonyPatch(typeof(DataTournaments.HistoryRow), nameof(DataTournaments.HistoryRow.Of))]
@@ -87,7 +100,10 @@ public static class Vrs
             if (t == null || __result?.Places == null || !_prizeTournaments.Add(t.Id)) return;
             var prizes = t.PrizeFundList;
             if (prizes == null) return;
-            var day = Today();
+            // The game also builds history rows for past tournaments (history screens), so date the
+            // prize by the tournament's end, not by today, and ignore anything outside the window.
+            var day = (int)(new DateTime(t.DateEnd.Ticks) - Epoch).TotalDays;
+            if (Today() - day > WindowDays) return;
             foreach (var key in __result.Places.Keys)
             {
                 var place = __result.Places[key];
@@ -289,6 +305,8 @@ public static class Vrs
     {
         public string Name => "vrs";
 
+        const int SectionVersion = 2; // v1 dated past tournaments' prizes by the day they were seen
+
         public void Load(JsonNode? data)
         {
             _matches.Clear();
@@ -296,6 +314,11 @@ public static class Vrs
             _prizeTournaments.Clear();
             _computedDay = -1;
             if (data is not JsonObject obj) return;
+            if ((obj["_v"]?.GetValue<int>() ?? 1) < SectionVersion)
+            {
+                Plugin.Log.LogInfo("[VRS] stored history is from an older version; starting it over");
+                return;
+            }
             if (obj["matches"] is JsonArray ms)
                 foreach (var n in ms)
                     if (n is JsonArray a && a.Count == 5)
@@ -317,7 +340,7 @@ public static class Vrs
             foreach (var p in _prizes) ps.Add(new JsonArray(p.Day, p.Team, p.Amount));
             var ts = new JsonArray();
             foreach (var t in _prizeTournaments) ts.Add(t);
-            return new JsonObject { ["matches"] = ms, ["prizes"] = ps, ["prizeTournaments"] = ts };
+            return new JsonObject { ["_v"] = SectionVersion, ["matches"] = ms, ["prizes"] = ps, ["prizeTournaments"] = ts };
         }
     }
 }

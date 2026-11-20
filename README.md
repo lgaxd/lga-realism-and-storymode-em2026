@@ -26,8 +26,8 @@ Not affiliated with or endorsed by the game's developer.
 | CT Positions per map (assigned by Role; manual setup screen planned) | ✅ Works |
 | Map Familiarity and CT/T Side Bias (saved in a sidecar file next to the save) | ✅ Works |
 | Coach Roster Suggestions when a player is in a Performance Slump | ✅ Works |
-| Subregions and Regional Tournaments | Planned |
-| VRS invites based on Valve's published Regional Standings formula | Planned |
+| Subregions and Regional Tournaments | 🧪 Built, not yet verified |
+| VRS invites based on Valve's published Regional Standings formula (Region quotas) | ✅ Works (history builds over 6 months) |
 
 ### Story Mode (planned)
 
@@ -95,6 +95,10 @@ dotnet build -c Release -p:Deploy=true
 ```
 
 `Deploy=true` copies the DLL into the game's `BepInEx\plugins\RealismOverhaul\` folder. If the game is not in the default Steam location, add `-p:GameDir="<path to game folder>"`.
+
+## Performance
+
+The game ships with no frame-rate cap and vSync off, and keeps running in the background. The mod caps it at 60 FPS while focused (`ForegroundFpsCap`) and 10 FPS while unfocused or minimized (`BackgroundFps`), in `[Performance]`.
 
 ## Configuration
 
