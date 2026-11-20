@@ -110,9 +110,6 @@ public class FeatureFlags(ConfigFile config)
     public ConfigEntry<bool> StoryMode { get; } = config.Bind("Story Mode", "StoryMode", true,
         "Story Mode: start a career on a historical date from the Database screen (start packs from tools/storydata).");
 
-    public ConfigEntry<string> ForceEra { get; } = config.Bind("Diagnostics", "ForceEra", "",
-        "Preview a Story Mode Era Theme in any career: lan_party, golden_age, global_offensive, esports_boom or cs2. Empty = off.");
-
     public ConfigEntry<bool> UiCensus { get; } = config.Bind("Diagnostics", "UiCensus", false,
         "Record the colours, sprites and fonts the game's UI uses to BepInEx/RealismOverhaul-ui-census.txt while you browse (for Story Mode's Era Themes).");
 

@@ -15,7 +15,7 @@ namespace RealismOverhaul.StoryMode;
 /// (EmdbExtractor) and loads it with the game's own loader (EmdbApplier), exactly as an uploaded
 /// .emdb. The player then starts a new career as usual, choosing a team of that world; the
 /// contract's start year is locked to the Start Date, and the career is marked as Story Mode in
-/// its sidecar, so its Era follows the calendar.
+/// its sidecar.
 public static class StoryStart
 {
     /// The Start Date of the world loaded on the Database screen, until a career is started from it.
@@ -32,6 +32,7 @@ public static class StoryStart
         Sidecar.Apply(harmony);
         harmony.PatchAll(typeof(StoryStart));
         ClassInjector.RegisterTypeInIl2Cpp<StoryLoaderBehaviour>();
+        EraIndicator.Start();
     }
 
     internal static List<string> Packs() =>
@@ -171,7 +172,6 @@ public static class StoryStart
         CareerStart = PendingStart;
         PendingStart = null;
         Plugin.Log.LogInfo($"[StoryStart] Story Mode career started on {CareerStart}");
-        EraTheme.FollowCalendar();
     }
 
     // ---------------------------------------------------------------- the career's sidecar
@@ -184,10 +184,7 @@ public static class StoryStart
         {
             CareerStart = data is JsonObject o ? o["start"]?.GetValue<string>() : null;
             if (CareerStart != null)
-            {
                 Plugin.Log.LogInfo($"[StoryStart] Story Mode career (started {CareerStart})");
-                EraTheme.FollowCalendar();
-            }
         }
 
         public JsonNode? Save() => CareerStart == null ? null : new JsonObject { ["start"] = CareerStart };

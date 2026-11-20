@@ -1,49 +1,12 @@
 {
-  "about": "Story Mode Eras (ADR 0005, GLOSSARY: Era, Era Theme, Org Upgrade). DRAFT. 'theme.palette' maps palette roles to colours; the roles are bound to the game's own colours after the UI colour census. Dates of Org Upgrades are when history makes them possible; 'basis' says why that date. Money values are multipliers on the game's 2026 economy. 'maps' lists the game maps that existed in the Era (loading screens only show these; null = all).",
-  "palette_roles": [
-    "background",
-    "panel",
-    "panel_alt",
-    "header",
-    "accent",
-    "accent_text",
-    "text",
-    "text_dim",
-    "positive",
-    "negative",
-    "button",
-    "button_hover",
-    "border"
-  ],
+  "about": "Story Mode Eras (ADR 0005, GLOSSARY: Era, Org Upgrade). DRAFT. Dates of Org Upgrades are when history makes them possible; 'basis' says why that date. Money values are multipliers on the game's 2026 economy.",
   "eras": [
     {
       "id": "lan_party",
       "name": "LAN Party",
       "from": "2000-01-01",
       "to": "2003-09-12",
-      "summary": "CS 1.0-1.5. Clans, LAN bags and IRC; prize money is the main income, and sponsors give hardware. Look: dark Windows-classic panels with bevels and navy title bars.",
-      "theme": {
-        "style": "bevel",
-        "font": "Tahoma",
-        "font_title": "Verdana",
-        "corner_radius": 0,
-        "texture": "bevel_grey",
-        "palette": {
-          "background": "#26292D",
-          "panel": "#363B41",
-          "panel_alt": "#454B52",
-          "header": "#1F3A68",
-          "accent": "#D4A017",
-          "accent_text": "#000000",
-          "text": "#E8E8E8",
-          "text_dim": "#A6ADB4",
-          "positive": "#4CAF50",
-          "negative": "#E05050",
-          "button": "#4B5259",
-          "button_hover": "#5A626A",
-          "border": "#1A1D20"
-        }
-      },
+      "summary": "CS 1.0-1.5. Clans, LAN bags and IRC; prize money is the main income, and sponsors give hardware.",
       "rules": {
         "money_scale": 0.03,
         "salary_scale": 0.02,
@@ -55,41 +18,14 @@
           "Coach"
         ]
       },
-      "maps": [
-        "dust",
-        "inferno",
-        "nuke",
-        "train"
-      ]
+      "summary_pt": "CS 1.0–1.5. Clãs, LANs e IRC; prêmios são a principal renda, e patrocinadores pagam em hardware."
     },
     {
       "id": "golden_age",
       "name": "1.6 Golden Age",
       "from": "2003-09-12",
       "to": "2012-08-21",
-      "summary": "CS 1.6 on Steam. National leagues, the first salaries, gaming houses and the first big organizations. Look: the olive-green Steam classic skin of the 1.6 years.",
-      "theme": {
-        "style": "glossy",
-        "font": "Verdana",
-        "font_title": "Trebuchet MS",
-        "corner_radius": 4,
-        "texture": "gloss_dark",
-        "palette": {
-          "background": "#353D30",
-          "panel": "#4C5844",
-          "panel_alt": "#5A6A50",
-          "header": "#2F3829",
-          "accent": "#C4B550",
-          "accent_text": "#1E2219",
-          "text": "#DEE5D7",
-          "text_dim": "#A0AA95",
-          "positive": "#9BC53D",
-          "negative": "#D9534F",
-          "button": "#5C6B52",
-          "button_hover": "#6B7C60",
-          "border": "#262B21"
-        }
-      },
+      "summary": "CS 1.6 on Steam. National leagues, the first salaries, gaming houses and the first big organizations.",
       "rules": {
         "money_scale": 0.08,
         "salary_scale": 0.06,
@@ -103,12 +39,7 @@
           "PR Manager"
         ]
       },
-      "maps": [
-        "dust",
-        "inferno",
-        "nuke",
-        "train"
-      ]
+      "summary_pt": "CS 1.6 no Steam. Ligas nacionais, os primeiros salários, gaming houses e as primeiras grandes organizações."
     },
     {
       "id": "global_offensive",
@@ -116,28 +47,6 @@
       "from": "2012-08-21",
       "to": "2016-03-29",
       "summary": "CS:GO arrives, streaming takes off, skins bring money in. The first million-dollar leagues.",
-      "theme": {
-        "style": "flat",
-        "font": "Segoe UI",
-        "font_title": "Segoe UI Semibold",
-        "corner_radius": 2,
-        "texture": "flat_dark",
-        "palette": {
-          "background": "#14171B",
-          "panel": "#1F242A",
-          "panel_alt": "#262C33",
-          "header": "#2E353D",
-          "accent": "#E8A33D",
-          "accent_text": "#14171B",
-          "text": "#ECEFF1",
-          "text_dim": "#8F9AA5",
-          "positive": "#5CB85C",
-          "negative": "#D9534F",
-          "button": "#2A3138",
-          "button_hover": "#353E47",
-          "border": "#0E1114"
-        }
-      },
       "rules": {
         "money_scale": 0.3,
         "salary_scale": 0.25,
@@ -153,15 +62,7 @@
           "Event Manager"
         ]
       },
-      "maps": [
-        "dust",
-        "inferno",
-        "mirage",
-        "nuke",
-        "train",
-        "cache",
-        "overpass"
-      ]
+      "summary_pt": "Chega o CS:GO, o streaming decola e as skins trazem dinheiro. As primeiras ligas milionárias."
     },
     {
       "id": "esports_boom",
@@ -169,28 +70,6 @@
       "from": "2016-03-29",
       "to": "2023-09-27",
       "summary": "Million-dollar Majors, franchised leagues, buyouts, analysts and psychologists. Then the online years.",
-      "theme": {
-        "style": "flat",
-        "font": "Segoe UI",
-        "font_title": "Bahnschrift",
-        "corner_radius": 6,
-        "texture": "flat_navy",
-        "palette": {
-          "background": "#0F1420",
-          "panel": "#182033",
-          "panel_alt": "#1E2840",
-          "header": "#24304C",
-          "accent": "#3FA9F5",
-          "accent_text": "#0F1420",
-          "text": "#EEF2F8",
-          "text_dim": "#8B97AD",
-          "positive": "#3DDC97",
-          "negative": "#FF5C6C",
-          "button": "#202B44",
-          "button_hover": "#2A3756",
-          "border": "#0A0E17"
-        }
-      },
       "rules": {
         "money_scale": 0.75,
         "salary_scale": 0.7,
@@ -200,16 +79,7 @@
         "default_match": "MR15",
         "max_staff": "all"
       },
-      "maps": [
-        "dust",
-        "inferno",
-        "mirage",
-        "nuke",
-        "train",
-        "cache",
-        "overpass",
-        "ancient"
-      ]
+      "summary_pt": "Majors de um milhão, ligas franqueadas, multas rescisórias, analistas e psicólogos. Depois, os anos online."
     },
     {
       "id": "cs2",
@@ -217,14 +87,6 @@
       "from": "2023-09-27",
       "to": null,
       "summary": "Source 2, MR12, the open circuit and Valve's rankings. Today's game.",
-      "theme": {
-        "style": "glass",
-        "font": null,
-        "font_title": null,
-        "corner_radius": 10,
-        "texture": null,
-        "palette": null
-      },
       "rules": {
         "money_scale": 1.0,
         "salary_scale": 1.0,
@@ -234,7 +96,7 @@
         "default_match": "MR12",
         "max_staff": "all"
       },
-      "maps": null
+      "summary_pt": "Source 2, MR12, circuito aberto e o ranking da Valve. O jogo de hoje."
     }
   ],
   "org_upgrades": [
