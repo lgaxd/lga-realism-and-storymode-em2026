@@ -31,6 +31,8 @@ public static class StoryStart
         Sidecar.Register(new Section());
         Sidecar.Apply(harmony);
         harmony.PatchAll(typeof(StoryStart));
+        harmony.PatchAll(typeof(StoryLogos));
+        StoryLogos.RemoveCopies();
         ClassInjector.RegisterTypeInIl2Cpp<StoryLoaderBehaviour>();
         EraIndicator.Start();
     }
@@ -126,6 +128,7 @@ public static class StoryStart
             return;
         }
         PendingStart = start;
+        StoryLogos.Install(start);
         Plugin.Log.LogInfo($"[StoryStart] world of {start} loaded: {result.Teams} teams, {result.Players} players, {result.Staff} staff");
         status.text = pt ? $"Mundo de {start} carregado ({result.Teams} times). Agora crie um novo jogo."
                          : $"World of {start} loaded ({result.Teams} teams). Now start a new game.";
@@ -182,9 +185,14 @@ public static class StoryStart
 
         public void Load(JsonNode? data)
         {
+            var wasStory = CareerStart != null;
             CareerStart = data is JsonObject o ? o["start"]?.GetValue<string>() : null;
+            if (CareerStart == null && wasStory) StoryLogos.Install("the game's own database"); // drop the world's images
             if (CareerStart != null)
+            {
                 Plugin.Log.LogInfo($"[StoryStart] Story Mode career (started {CareerStart})");
+                StoryLogos.Install(CareerStart);
+            }
         }
 
         public JsonNode? Save() => CareerStart == null ? null : new JsonObject { ["start"] = CareerStart };

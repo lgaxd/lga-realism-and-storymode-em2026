@@ -211,6 +211,7 @@ def parse_player(soup: BeautifulSoup) -> dict:
         "role": ib.get("Role") or ib.get("Roles"), "died": date(ib.get("Died")), "history": _history(soup), "team": ib.get("Team"), "alternate_ids": ib.get("Alternate IDs"),
         "active_from": years[0] if years else None, "active_to": years[1] if len(years) > 1 else None,
         "winnings": money(ib.get("Approx. Total Winnings")), "results": results,
+        "photo": None if "NoImage" in (_logo(soup) or "NoImage") else _logo(soup),
     }
 
 

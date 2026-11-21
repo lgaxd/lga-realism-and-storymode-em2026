@@ -103,7 +103,25 @@ def clean_name(text: str | None) -> str:
     return t.replace(";", ",")
 
 
+DISAMBIG = re.compile(r"^(.+?) \(([^()]+)\)$")
+
+
+def title(text: str) -> str:
+    """A wiki title as a key: first letter upper (MediaWiki ignores its case), and a disambiguation
+    in brackets lower case, so 'AdreN (American Player)' and 'AdreN (American player)' meet."""
+    text = text[:1].upper() + text[1:]
+    m = DISAMBIG.match(text)
+    return f"{m.group(1)} ({m.group(2).lower()})" if m else text
+
+
+def display(key: str) -> str:
+    """'Astralis (finnish team)' -> 'Astralis': the brackets only tell wiki pages apart."""
+    m = DISAMBIG.match(key)
+    return m.group(1) if m and not m.group(2).startswith("female") else key
+
+
 def short_team(title: str) -> str:
+    title = display(title)
     t = re.sub(r"^Team ", "", title)
     t = re.sub(r" (Esports|eSports|e-Sports|Gaming|Clan|Esport|Club)$", "", t)
     return t.replace(";", ",")[:20]
@@ -171,9 +189,9 @@ class Archive:
         self.alias: dict[str, str] = {}
         for store, field in ((self.teams, "name"), (self.players, "id")):
             for page, r in list(store.items()):
-                canon = r.get(field) or page
-                canon = canon[:1].upper() + canon[1:]
-                self.alias[page[:1].upper() + page[1:]] = canon
+                # A heading is not unique: 'Astralis (Finnish team)' is headed 'Astralis' too.
+                canon = title(page) if DISAMBIG.match(page) else title(r.get(field) or page)
+                self.alias[title(page)] = canon
                 if canon != page:
                     keep = store.get(canon)
                     if keep is None or r.get("captured", "") > keep.get("captured", ""):
@@ -193,15 +211,23 @@ class Archive:
         """A roster entry that is really a team page (an icon link), not a player."""
         return key in self.teams or key in self.results or key in self.alias.values() and key in self.teams
 
-    def team_key(self, title: str | None) -> str | None:
-        if not title or title in NOT_A_TEAM:
+    def female(self, team: str) -> bool:
+        """A team that plays mostly in female-only events."""
+        events = self.results.get(team, {})
+        if not events:
+            return False
+        women = sum(1 for t in events if "female" in (self.tournaments.get(t, {}).get("restrictions") or "").lower())
+        return women * 2 > len(events)
+
+    def team_key(self, name: str | None) -> str | None:
+        if not name or name in NOT_A_TEAM:
             return None
-        title = title[:1].upper() + title[1:]  # MediaWiki titles ignore the first letter's case
-        return self.alias.get(title, title)
+        key = title(name.replace("\\", ""))  # "We\'re..." on some pages
+        return self.alias.get(key, key)
 
     def player_key(self, page: str | None, nick: str | None) -> str | None:
         if page:
-            page = page[:1].upper() + page[1:]
+            page = title(page)
             return self.alias.get(page, page)
         return f"id:{nick.lower()}" if nick else None
 
@@ -216,7 +242,9 @@ class Archive:
 
     def _index(self) -> None:
         # The Main Circuit is 1.x/1.6 -> CS:GO -> CS2: the parallel CS:Source scene does not count.
-        self.off_circuit = {k for k, t in self.tournaments.items() if "source" in (t.get("game") or "").lower()}
+        # National teams are not clubs: nation cups give no club evidence.
+        self.off_circuit = {k for k, t in self.tournaments.items()
+                            if "source" in (t.get("game") or "").lower() or "national" in (t.get("restrictions") or "").lower()}
         for tkey, t in self.tournaments.items():
             if tkey in self.off_circuit:
                 continue
@@ -346,8 +374,27 @@ class Reference:
             self.donors[(int(r["Skill"]), r["Role1"] or "Rifler")].append(r)
         self.coaches = [s for s in self.staff if s["Role"] == "Coach"]
 
-    def find(self, page: str | None, nick: str) -> dict | None:
-        return self.by_page.get(page or "") or self.by_nick.get(nick.lower())
+    def find(self, page: str | None, nick: str, arc: "Archive | None" = None, at: dt.date | None = None) -> dict | None:
+        """The reference's profile of a player: by his wiki page, else by a nick nobody else uses,
+        unless that reference player is plainly someone else (another wiki page, another birth
+        year, or a child at the date)."""
+        hit = (self.by_page.get(page) if page else None) or self.by_nick.get(nick.lower())
+        if hit is None or arc is None:
+            return hit
+        if page and self.by_page.get(page) is hit:
+            return hit if not at or _age(hit["Birthdate"], at, 99) >= 14 else None
+        if hit["Liquipedia"] and page and arc.player_key(archive.title_of(hit["Liquipedia"]), None) != page:
+            return None
+        born = (arc.players.get(page or "", {}) or {}).get("born")
+        try:
+            year = int(hit["Birthdate"].split(".")[2])
+        except (IndexError, ValueError):
+            return hit
+        if born and abs(int(born[:4]) - year) > 1:
+            return None
+        if at and _age(hit["Birthdate"], at, 99) < 15:
+            return None
+        return hit
 
     def donor(self, skill: int, role: str, seed: str) -> dict:
         for spread in range(0, 20):
@@ -417,7 +464,9 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
                     keep_first = p1 in arc.players or (p2 not in arc.players and len(arc.spells.get(p1, [])) >= len(arc.spells.get(p2, [])))
                     drop = p2 if keep_first else p1
                     members[:] = [m for m in members if m[0] != drop]
-    teams = {t: ps for t, ps in roster.items() if len(ps) >= 4}
+    # National teams are not clubs (a player history can still list one).
+    countries = {r["Country"] for r in ref.players if r["Country"]} | {"Crotia"}  # sic, on the wiki
+    teams = {t: ps for t, ps in roster.items() if len(ps) >= 4 and re.sub(r"^Team ", "", display(t)) not in countries}
 
     # Strength on the game's scale.
     team_raw = {t: arc.team_score(t, at) for t in teams}
@@ -431,8 +480,13 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
 
     # Team nicks (the reference's short names where the team is known).
     nick_of, used = {}, set()
+    names = {display(t).lower() for t in teams}
     for t in sorted(teams, key=lambda t: -team_raw[t]):
         n = base = ref.team_nick.get(t.lower()) or short_team(t)
+        if n.lower() in names and n.lower() != display(t).lower():
+            # Another team's full name ("Counter Logic Gaming" for CLG Red): abbreviate instead.
+            words = display(t).split()
+            n = base = ("".join(w[0] for w in words[:-1]).upper() + " " + words[-1]) if len(words) > 1 else n
         k = 1
         while n in used:  # the game names image files after nicks: no symbols
             k += 1
@@ -440,10 +494,11 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         used.add(n)
         nick_of[t] = n
 
-    player_rows, player_nicks, order = [], set(), {}
+    player_rows, player_nicks, order, player_pages = [], set(), {}, {}
     for team in sorted(teams, key=lambda t: -team_raw[t]):
         members = sorted(teams[team], key=lambda pb: (pb[1], -skill.get(pb[0], 0)))
         rows = [_player_row(p, team, skill[p], ref, arc, at_date, nick_of[team], player_nicks) for p, _ in members]
+        player_pages.update({r["Nick"]: p for r, (p, _) in zip(rows, members) if not p.startswith("id:")})
         _fill_roles(rows)
         for i in range(len(rows), 5):  # a team needs five players
             rows.append(_generated_player(team, i, team_rating[team], ref, nick_of[team], player_nicks, at_date))
@@ -456,10 +511,10 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         igl = next((r["Nick"] for r in player_rows if r["Team"] == nick_of[team] and "In-game leader" in (r["Role1"], r["Role2"], r["Role3"])), "")
         rec = arc.teams.get(team, {})
         team_rows.append({
-            "Nick": nick_of[team], "Name": team, "Country": countries.most_common(1)[0][0] if countries else "",
+            "Nick": nick_of[team], "Name": display(team), "Country": countries.most_common(1)[0][0] if countries else "",
             "Earnings": arc.earnings(team, at), "Rating": team_rating[team], "ERS": team_ers[team],
             "Description": "", "Academy": "", "BgColor": "#%06x" % (stable(team) & 0xFFFFFF), "StartIGL": igl,
-            "Female": "1" if "female" in team.lower() or "female" in (rec.get("name") or "").lower() else "",
+            "Female": "1" if "female" in team.lower() or "female" in (rec.get("name") or "").lower() or arc.female(team) else "",
         })
     names = {t["Name"]: t["Nick"] for t in team_rows}
     for t in team_rows:  # academies: "X Academy" next to X
@@ -469,6 +524,7 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
 
     staff_rows = _coaches(teams, nick_of, arc, ref, at)
     return {"players": player_rows, "teams": team_rows, "staff": staff_rows, "order": order,
+            "pages": {nick_of[t]: t for t in teams}, "player_pages": player_pages,
             "raw": player_raw, "skill": skill, "team_raw": team_raw}
 
 
@@ -477,7 +533,7 @@ def _player_row(player: str, team: str, skill: int, ref: Reference, arc: Archive
     info, page_rec = arc.info.get(player, {}), arc.players.get(player, {})
     nick = (info.get("nick") or player.removeprefix("id:")).replace(";", ",")
     page = None if player.startswith("id:") else player
-    known = ref.find(page, nick)
+    known = ref.find(page, nick, arc, at_date)
     roles = roles_from(page_rec.get("role")) or ([known["Role1"], known["Role2"], known["Role3"]] if known else [])
     roles = [r for r in roles if r][:3]
     if known:
@@ -494,13 +550,17 @@ def _player_row(player: str, team: str, skill: int, ref: Reference, arc: Archive
     for a in ABILITY:
         if str(row.get(a, "")).isdigit():
             row[a] = max(1, min(20, int(row[a]) + shift))
-    born = page_rec.get("born")
+    # The wiki's birth date first: the reference has day and month swapped now and then; its
+    # bio sentence ("born June 2, 1994") is right more often than its date field.
+    born = page_rec.get("born") or born_in(row.get("Bio"))
     if born:
         b = dt.date.fromordinal(day(born))
         row["Birthdate"] = b.strftime("%d.%m.%Y")
-    elif not row.get("Birthdate"):
+    # No date, or one that makes him a child at D (an old roster linked to a namesake's page):
+    # about 19 at his first known event.
+    if not row.get("Birthdate") or _age(row["Birthdate"], at_date, 0) < 14:
         first = min((d for d, _ in arc.evidence.get(player, [])), default=at_date.toordinal())
-        row["Birthdate"] = dt.date(dt.date.fromordinal(first).year - 19, 7, 1).strftime("%d.%m.%Y")
+        row["Birthdate"] = dt.date(min(dt.date.fromordinal(first).year, at_date.year) - 19, 7, 1).strftime("%d.%m.%Y")
     age = _age(row["Birthdate"], at_date)
     row["Skill"] = skill
     row["Potential"] = min(20, skill + max(0, 23 - age) // 2) if age < 23 else skill
@@ -523,8 +583,25 @@ def unique(nick: str, used: set) -> str:
     return out
 
 
-def _age(birth: str, at: dt.date) -> int:
-    d, m, y = (int(x) for x in birth.split("."))
+MONTHS = {m: i for i, m in enumerate(("january february march april may june july august september "
+                                      "october november december").split(), 1)}
+
+
+def born_in(bio: str | None) -> str | None:
+    """'... (born June 2, 1994) ...' -> '1994-06-02'."""
+    m = re.search(r"born (\w+) (\d{1,2}), (\d{4})", bio or "")
+    if m and m.group(1).lower() in MONTHS:
+        return f"{m.group(3)}-{MONTHS[m.group(1).lower()]:02d}-{int(m.group(2)):02d}"
+    return None
+
+
+def _age(birth: str, at: dt.date, default: int | None = None) -> int:
+    try:
+        d, m, y = (int(x) for x in birth.split("."))
+    except ValueError:
+        if default is None:
+            raise
+        return default
     return at.year - y - ((at.month, at.day) < (m, d))
 
 
@@ -610,6 +687,9 @@ def main() -> None:
     write_table(out / "Players.csv", ref.player_header, world["players"])
     write_table(out / "Teams.csv", ref.team_header, world["teams"])
     write_table(out / "Staff.csv", ref.staff_header, world["staff"])
+    # Which wiki page each team is (logos.py): names alone are ambiguous ('Astralis' of 2004 and 2016).
+    (out / "team_pages.tsv").write_text("".join(f"{n}\t{k}\n" for n, k in world["pages"].items()), encoding="utf-8")
+    (out / "player_pages.tsv").write_text("".join(f"{n}\t{k}\n" for n, k in world["player_pages"].items()), encoding="utf-8")
     (out / "roster_order.json").write_text(json.dumps(world["order"], ensure_ascii=False), encoding="utf-8")
     for name in ("Tournaments.csv", "Sponsors.csv"):
         (out / name).write_bytes((args.reference / name).read_bytes())
@@ -621,7 +701,7 @@ def main() -> None:
         pairs = []
         for p, s in world["skill"].items():
             info = arc.info.get(p, {})
-            known = ref.find(None if p.startswith("id:") else p, info.get("nick") or "")
+            known = ref.find(None if p.startswith("id:") else p, info.get("nick") or "", arc)
             if known and known["Skill"].isdigit():
                 pairs.append((s, int(known["Skill"]), info.get("nick")))
         if len(pairs) > 2:
