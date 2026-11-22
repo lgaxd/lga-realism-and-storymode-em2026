@@ -324,12 +324,13 @@ class Archive:
         for team, join, bench, leave in self.spells.get(player, []):
             if join is not None and join <= at and (leave is None or leave > at):
                 if best is None or join > best[1]:
-                    best = (team, join, bench is not None and bench <= at)
+                    best = (team, join, bench is not None and bench <= at, leave)
         recent = [(d, t) for d, t in self.evidence.get(player, []) if at - 180 <= d <= at]
         latest = max(recent) if recent else None
         if best is not None:
-            # A stale open spell loses to newer evidence for another team.
-            if latest and latest[1] != best[0] and latest[0] > best[1]:
+            # A stale open spell loses to newer evidence for another team; a spell with its
+            # leaving date recorded does not (a mix or a stand-in appearance is not a transfer).
+            if best[3] is None and latest and latest[1] != best[0] and latest[0] > best[1]:
                 return self._unless_contradicted(player, latest[1], at)
             return best[0], best[2]
         return self._unless_contradicted(player, latest[1], at) if latest else None
@@ -496,6 +497,30 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
     # Nor are staff and VIP line-ups ("Fnatic Staff", "C9 VIPs").
     teams = {t: ps for t, ps in roster.items() if len(ps) >= 4 and re.sub(r"^Team ", "", display(t)) not in countries
              and not re.search(r"\b(staff|vips?)$", display(t), re.I)}
+
+    # A team one player short signs a real player without a team at D rather than an invented
+    # one: someone who played for it in the past year first, else an active player of its
+    # country (the best first). Stronger teams sign first.
+    taken = {p for ps in teams.values() for p, _ in ps}
+    def active(player: str) -> bool:
+        if player in taken or player.startswith("id:") or player not in arc.players:
+            return False
+        died = day(arc.players[player].get("died"))
+        return (died is None or died > at) and any(at - 365 <= d <= at for d, _ in arc.evidence.get(player, []))
+    pool = [p for p in set(arc.spells) | set(arc.evidence) if active(p)]
+    pool_score = {p: arc.player_score(p, at) for p in pool}
+    for team in sorted((t for t, ps in teams.items() if len(ps) < 5), key=lambda t: -arc.team_score(t, at)):
+        home = Counter(arc.info.get(p, {}).get("country") for p, _ in teams[team]).most_common(1)[0][0]
+        while len(teams[team]) < 5:
+            def fit(p: str) -> tuple:
+                former = sum(1 for d, t in arc.evidence.get(p, []) if t == team and at - 365 <= d <= at)
+                return former, arc.info.get(p, {}).get("country") == home, pool_score[p]
+            free = [p for p in pool if p not in taken]
+            best = max(free, key=fit, default=None)
+            if best is None or fit(best)[:2] == (0, False):
+                break  # no one fits: an invented player, as before
+            teams[team].append((best, False))
+            taken.add(best)
 
     # Strength on the game's scale.
     team_raw = {t: arc.team_score(t, at) for t in teams}
