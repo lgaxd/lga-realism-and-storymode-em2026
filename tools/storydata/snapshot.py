@@ -80,15 +80,24 @@ def place_weight(place: int | None) -> float:
     return 0.08
 
 
+# A stage of a tiered event ("Qualifier ( B-Tier )") counts for part of that tier.
+STAGE_SHARE = {"qualifier": 0.35, "online stage": 0.6, "monthly": 0.4, "weekly": 0.25,
+               "points": 0.0, "showmatch": 0.0}
+
+
 def tier_weight(tier: str | None) -> float:
-    t = (tier or "").lower().replace("-tier", "").replace(" tier", "").strip()
+    t = (tier or "").lower()
+    m = re.search(r"\(\s*([a-z]+)[- ]tier\s*\)", t)
+    if m:
+        return TIER_WEIGHT.get(m.group(1), 0.05) * STAGE_SHARE.get(t.split("(")[0].strip(), 0.5)
+    t = t.replace("-tier", "").replace(" tier", "").strip()
     return TIER_WEIGHT.get(t, 0.05)
 
 
 def fade(when: int, at: int) -> float:
-    """Weight of a result dated `when` for the world at `at`."""
+    """Weight of a result dated `when` for the world at `at` (the last 18 months count)."""
     if when <= at:
-        return max(0.0, 1 - (at - when) / 365)
+        return max(0.0, 1 - (at - when) / 540)
     return max(0.0, 0.5 * (1 - (when - at) / 180))
 
 
@@ -581,7 +590,7 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
     staff_rows = _coaches(teams, nick_of, arc, ref, at)
     return {"players": player_rows, "teams": team_rows, "staff": staff_rows, "order": order,
             "pages": {nick_of[t]: t for t in teams}, "player_pages": player_pages,
-            "raw": player_raw, "skill": skill, "team_raw": team_raw}
+            "raw": player_raw, "skill": skill, "team_raw": team_raw, "team_of": players}
 
 
 def _player_row(player: str, team: str, skill: int, ref: Reference, arc: Archive, at_date: dt.date,
