@@ -32,6 +32,7 @@ public static class StoryStart
         Sidecar.Apply(harmony);
         harmony.PatchAll(typeof(StoryStart));
         harmony.PatchAll(typeof(StoryLogos));
+        harmony.PatchAll(typeof(StoryCalendar));
         StoryLogos.RemoveCopies();
         ClassInjector.RegisterTypeInIl2Cpp<StoryLoaderBehaviour>();
         EraIndicator.Start();

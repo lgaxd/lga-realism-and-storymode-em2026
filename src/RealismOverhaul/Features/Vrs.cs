@@ -99,7 +99,27 @@ public static class Vrs
         for (var i = 0; i < matches.Count; i++) Record(matches[i]);
     }
 
-    /// The game builds a tournament's history row (final places) when it ends; record prize money.
+    /// A tournament ends: the game pays out its prize list (FinalList); record each team's money.
+    [HarmonyPatch(typeof(TournamentEngine), nameof(TournamentEngine.CreatePrizeFundFinalList))]
+    [HarmonyPostfix]
+    static void PrizeListPostfix(DataTournament tournament)
+    {
+        try
+        {
+            var final = tournament?.FinalList;
+            if (tournament == null || final == null || final.Count == 0 || !_prizeTournaments.Add(tournament.Id)) return;
+            var day = (int)(new DateTime(tournament.DateEnd.Ticks) - Epoch).TotalDays;
+            for (var i = 0; i < final.Count; i++)
+            {
+                var f = final[i];
+                if (f?.TeamId != null && f.Money > 0) _prizes.Add(new PrizeRec(day, f.TeamId, f.Money));
+            }
+        }
+        catch (Exception e) { Plugin.Log.LogError($"[VRS] could not record prizes: {e}"); }
+    }
+
+    /// The history row of a past tournament (built only when a history screen shows it): a fallback
+    /// for tournaments that ended before prizes were recorded at payout.
     [HarmonyPatch(typeof(DataTournaments.HistoryRow), nameof(DataTournaments.HistoryRow.Of))]
     [HarmonyPostfix]
     static void HistoryRowPostfix(DataTournament t, DataTournaments.HistoryRow __result)

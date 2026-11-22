@@ -66,6 +66,15 @@ def infobox(soup: BeautifulSoup) -> dict[str, str]:
     return result
 
 
+def _infobox_value(soup: BeautifulSoup, key: str) -> Tag | None:
+    """The value cell of an infobox field, for what its text loses (a flag)."""
+    box = soup.select_one(".fo-nttax-infobox")
+    for label in (box.select(".infobox-cell-2") if box else []):
+        if clean(label.get_text(" ")).rstrip(":") == key:
+            return label.find_next_sibling()
+    return None
+
+
 def flag_country(cell: Tag | None) -> str | None:
     """Country from a flag icon (<span class="flag"><img alt="Sweden">)."""
     if cell is None:
@@ -250,6 +259,7 @@ def parse_tournament(soup: BeautifulSoup) -> dict:
     return {
         "kind": "tournament", "name": name, "series": ib.get("Series"), "organizer": ib.get("Organizer"),
         "game": ib.get("Game"), "type": ib.get("Type"), "location": ib.get("Location"),
+        "country": flag_country(_infobox_value(soup, "Location")),
         "prize_pool": money(ib.get("Prize Pool")), "start": date(ib.get("Start Date")), "end": date(ib.get("End Date")),
         "teams": ib.get("Teams"), "tier": ib.get("Liquipedia Tier"), "restrictions": ib.get("Restrictions"),
         "placements": placements, "rosters": rosters,
