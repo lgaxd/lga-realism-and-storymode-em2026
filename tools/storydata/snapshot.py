@@ -205,6 +205,7 @@ class Archive:
         self.results: dict[str, dict] = defaultdict(dict)       # team -> tournament -> (day, place, tier, prize)
         self.played: dict[str, dict] = defaultdict(dict)        # player -> tournament -> (day, team)
         self.staff: dict[str, list] = defaultdict(list)         # team -> staff spells
+        self.names: dict[str, list] = defaultdict(list)         # team -> (day, name used then)
         self._index()
 
     def _is_team(self, key: str) -> bool:
@@ -243,8 +244,11 @@ class Archive:
     def _index(self) -> None:
         # The Main Circuit is 1.x/1.6 -> CS:GO -> CS2: the parallel CS:Source scene does not count.
         # National teams are not clubs: nation cups give no club evidence.
+        # Staff cups and showmatches (organisers, journalists, VIPs) give no club evidence either.
         self.off_circuit = {k for k, t in self.tournaments.items()
-                            if "source" in (t.get("game") or "").lower() or "national" in (t.get("restrictions") or "").lower()}
+                            if "source" in (t.get("game") or "").lower() or "national" in (t.get("restrictions") or "").lower()
+                            or "showmatch" in (t.get("tier") or "").lower()
+                            or re.search(r"staff cup|\bvips?\b|all-?stars?|celebrit|charity", k, re.I)}
         for tkey, t in self.tournaments.items():
             if tkey in self.off_circuit:
                 continue
@@ -254,6 +258,7 @@ class Archive:
             for p in t["placements"]:
                 team = self.team_key(p.get("team"))
                 if team:
+                    self.names[team].append((when, display(title(p["team"].replace("\\", "")))))
                     self.results[team].setdefault(tkey, (when, place_of(p.get("place")), t.get("tier"), p.get("prize")))
             for card in t["rosters"]:
                 team = self.team_key(card.get("team"))
@@ -277,7 +282,10 @@ class Archive:
                     continue
                 self._note(key, m.get("id"), m.get("country"), m.get("name"))
                 self.listed[team].add(key)
-                self.spells[key].append((team, day(m.get("join")), day(m.get("inactive")), day(m.get("leave"))))
+                join, leave = day(m.get("join")), day(m.get("leave"))
+                if leave is None and join is not None and (m.get("status") or "").lower() == "former":
+                    leave = join + 180  # a former member whose leaving went unrecorded: not for ever
+                self.spells[key].append((team, join, day(m.get("inactive")), leave))
             for s in r["staff"]:
                 self.staff[team].append(s)
             for res in r.get("results", []):
@@ -298,6 +306,17 @@ class Archive:
                     self.results[team].setdefault(res["tournament"], (when, place_of(res.get("place")), res.get("tier"), res.get("prize")))
 
     # -- the world at a date
+
+    def name_at(self, team: str, at: int) -> str:
+        """The name a team went by at day `at`: tournament pages keep the name of their day
+        ("Team EnVyUs" in 2016, "Team Envy" since 2018), the team page only today's."""
+        # The name of its last few events (a rename shows at once; one odd label does not win).
+        used = sorted((d, n) for d, n in self.names.get(team, []) if d <= at)[-5:]
+        if not used:
+            return display(team)
+        name = Counter(n for _, n in used).most_common(1)[0][0]
+        # Only the capitals differ ("Mibr", "MIBR"): the team page spells it best.
+        return display(team) if name.lower() == display(team).lower() else name
 
     def team_at(self, player: str, at: int) -> tuple[str, bool] | None:
         """(team, benched) for a player at day `at`, or None (see also from_page)."""
@@ -420,11 +439,19 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         if hit:
             roster[hit[0]].append((player, hit[1]))
     # A team's own page decides its roster: tournament appearances (redirected names, stand-ins)
-    # only fill a team whose page gives fewer than five players on that date.
+    # only fill a team whose page gives fewer than five players on that date, and only up to
+    # five, most frequent first (a stand-in plays once; a team with no roster on its page would
+    # otherwise collect every line-up of its last six months).
     for team, members in roster.items():
         listed = [m for m in members if m[0] in arc.listed.get(team, ())]
-        if len(listed) >= 5 and len(listed) < len(members):
+        if len(listed) >= 5:
             members[:] = listed
+            continue
+        def played_for(player: str) -> tuple[int, int]:
+            dates = [d for d, t in arc.evidence.get(player, []) if t == team and at - 180 <= d <= at]
+            return len(dates), max(dates, default=0)
+        others = sorted((m for m in members if m not in listed), key=lambda m: played_for(m[0]), reverse=True)
+        members[:] = listed + others[:5 - len(listed)]
     # The same player can hide under two keys (a redirect we never fetched: "NBK" / "NBK-"):
     # teammates whose nicks match ignoring case and punctuation are one player.
     def norm(text: str) -> str:
@@ -466,7 +493,9 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
                     members[:] = [m for m in members if m[0] != drop]
     # National teams are not clubs (a player history can still list one).
     countries = {r["Country"] for r in ref.players if r["Country"]} | {"Crotia"}  # sic, on the wiki
-    teams = {t: ps for t, ps in roster.items() if len(ps) >= 4 and re.sub(r"^Team ", "", display(t)) not in countries}
+    # Nor are staff and VIP line-ups ("Fnatic Staff", "C9 VIPs").
+    teams = {t: ps for t, ps in roster.items() if len(ps) >= 4 and re.sub(r"^Team ", "", display(t)) not in countries
+             and not re.search(r"\b(staff|vips?)$", display(t), re.I)}
 
     # Strength on the game's scale.
     team_raw = {t: arc.team_score(t, at) for t in teams}
@@ -479,13 +508,15 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
     skill = quantile_map(player_raw, ref.skills)
 
     # Team nicks (the reference's short names where the team is known).
+    name_of = {t: arc.name_at(t, at) for t in teams}
     nick_of, used = {}, set()
-    names = {display(t).lower() for t in teams}
+    names = {name_of[t].lower() for t in teams}
     for t in sorted(teams, key=lambda t: -team_raw[t]):
-        n = base = ref.team_nick.get(t.lower()) or short_team(t)
-        if n.lower() in names and n.lower() != display(t).lower():
+        # The reference's nick is today's: a team under another name then gets one from that name.
+        n = base = (name_of[t] == display(t) and ref.team_nick.get(t.lower())) or short_team(name_of[t])
+        if n.lower() in names and n.lower() != name_of[t].lower():
             # Another team's full name ("Counter Logic Gaming" for CLG Red): abbreviate instead.
-            words = display(t).split()
+            words = name_of[t].split()
             n = base = ("".join(w[0] for w in words[:-1]).upper() + " " + words[-1]) if len(words) > 1 else n
         k = 1
         while n in used:  # the game names image files after nicks: no symbols
@@ -511,7 +542,7 @@ def build(at_text: str, ref: Reference, arc: Archive) -> dict:
         igl = next((r["Nick"] for r in player_rows if r["Team"] == nick_of[team] and "In-game leader" in (r["Role1"], r["Role2"], r["Role3"])), "")
         rec = arc.teams.get(team, {})
         team_rows.append({
-            "Nick": nick_of[team], "Name": display(team), "Country": countries.most_common(1)[0][0] if countries else "",
+            "Nick": nick_of[team], "Name": name_of[team], "Country": countries.most_common(1)[0][0] if countries else "",
             "Earnings": arc.earnings(team, at), "Rating": team_rating[team], "ERS": team_ers[team],
             "Description": "", "Academy": "", "BgColor": "#%06x" % (stable(team) & 0xFFFFFF), "StartIGL": igl,
             "Female": "1" if "female" in team.lower() or "female" in (rec.get("name") or "").lower() or arc.female(team) else "",

@@ -187,14 +187,15 @@ def _history(soup: BeautifulSoup) -> list[dict]:
     out = []
     box = soup.select_one(".fo-nttax-infobox")
     for when in (box.select(".th-mono") if box else []):
-        team_div = when.find_next_sibling("div")
+        # Older captures: <div>dates</div><div>team</div>; 2026 ones: a table row of two cells.
+        team_div = when.find_next_sibling(["div", "td"])
         if team_div is None:
             continue
         a = team_div.select_one("a")
         team = link_title(a)
         if team is None and a is not None and a.get("title"):  # a team without a page yet
             team = a["title"].replace(" (page does not exist)", "")
-        parts = re.split(r"\s+[–-]\s+", clean(when.get_text(" ")))
+        parts = re.split(r"\s+[–—-]\s+", clean(when.get_text(" ")))
         out.append({"team": team or clean(team_div.get_text(" ")), "join": date(parts[0]),
                     "leave": date(parts[1]) if len(parts) > 1 else None})
     return out
